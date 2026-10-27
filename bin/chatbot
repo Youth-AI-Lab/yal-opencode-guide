@@ -1,0 +1,938 @@
+#!/usr/bin/env -S python3 -I
+"""chatbot: check a chatbot folder, then start OpenCode in it. Also exports and imports chatbots.
+
+  chatbot [FOLDER]                       check, then start OpenCode in the folder
+  chatbot check [FOLDER]                 the checks only
+  chatbot export [FOLDER] [FILE.zip]     a package with the content only (no settings, no key)
+  chatbot import FILE.zip [NEW-FOLDER]   a new chatbot folder: the guide's settings + the content
+
+FOLDER: by default the current folder if it holds opencode.jsonc, else the folder chatbot/ of this
+repository. Python 3 standard library only. Every check fails closed: what the launcher does not
+know, it refuses.
+
+Measured on OpenCode 2.1.4 (see the facilitator notes, GUIDE-OPENCODE.md): its configuration
+parser (comments and trailing commas allowed, nothing else), its rule matching (last matching rule
+wins; "*" matches any text, "/" included; "?" one character; case counts; a trailing " *" also
+matches nothing), and the folders it loads (every folder above, up to /).
+"""
+import datetime
+import functools
+import os
+import re
+import shutil
+import stat
+import sys
+import tempfile
+import zipfile
+
+PYTHON = "/opt/workshop/venv/bin/python"  # the Python of the Codespace image, for the MCP servers
+REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+TEMPLATE = os.path.join(REPO, "chatbot")
+NOT_SAFE = "This chatbot is not safe to start. Fix it, or ask the person who sent it."
+ENV_VARS = ["OPENCODE_CONFIG", "OPENCODE_CONFIG_CONTENT", "OPENCODE_CONFIG_DIR",
+            "OPENCODE_CONFIG_PROJECT_DISABLE", "OPENCODE_DISABLE_PROJECT_CONFIG"]
+LOADED_ABOVE = ["opencode.json", "opencode.jsonc", ".opencode", ".claude", ".agents", "AGENTS.md", "CLAUDE.md"]
+SECRET_PATTERNS = [
+    (re.compile(rb"sk-ant-[A-Za-z0-9_-]{6,}"), "an Anthropic key (sk-ant-...)"),
+    (re.compile(rb"sk-or-[A-Za-z0-9_-]{6,}"), "an OpenRouter key (sk-or-...)"),
+    (re.compile(rb"(?<![A-Za-z0-9])AQ\.[A-Za-z0-9_-]{16,}"), "a Google key (AQ....)"),
+    (re.compile(rb"AIza[0-9A-Za-z_-]{20,}"), "a Google key (AIza...)"),
+    (re.compile(rb"gh[pousr]_[A-Za-z0-9]{20,}"), "a GitHub token (ghp_...)"),
+    (re.compile(rb"github_pat_[A-Za-z0-9_]{20,}"), "a GitHub token (github_pat_...)"),
+    (re.compile(rb"-----BEGIN"), "a private key or a certificate (-----BEGIN ...)"),
+]
+SECRET_FILES = re.compile(r"^(\.env|\.env\..*|.*\.env|.*\.key|.*\.pem|.*workshop-key.*)$")
+MAX_PACKAGE_FILES, MAX_PACKAGE_BYTES = 2000, 50 * 1024 * 1024
+
+
+# ---------------------------------------------------------------- JSONC, as OpenCode 2.1.4 reads it
+
+class JsoncError(Exception):
+    pass
+
+
+class _Jsonc:
+    """jsonc-parser with allowTrailingComma, as OpenCode uses it: // and /* */ comments, trailing
+    commas; whitespace is only space, tab, CR and LF; a // comment ends at CR or LF. Stricter than
+    OpenCode on one point: a key twice in the same object is refused (OpenCode keeps the last one,
+    which hides it from a reader)."""
+
+    def __init__(self, text):
+        self.t, self.i = text, 0
+
+    def fail(self, what):
+        line = self.t.count("\n", 0, self.i) + 1
+        raise JsoncError(f"{what} on line {line}")
+
+    def skip(self):
+        t = self.t
+        while self.i < len(t):
+            c = t[self.i]
+            if c in " \t\r\n":
+                self.i += 1
+            elif t.startswith("//", self.i):
+                while self.i < len(t) and t[self.i] not in "\r\n":
+                    self.i += 1
+            elif t.startswith("/*", self.i):
+                end = t.find("*/", self.i + 2)
+                if end < 0:
+                    self.fail("a comment /* is never closed")
+                self.i = end + 2
+            else:
+                return
+
+    def value(self):
+        self.skip()
+        if self.i >= len(self.t):
+            self.fail("a value is missing")
+        c = self.t[self.i]
+        if c == "{":
+            return self.obj()
+        if c == "[":
+            return self.arr()
+        if c == '"':
+            return self.string()
+        for word, val in (("true", True), ("false", False), ("null", None)):
+            if self.t.startswith(word, self.i):
+                self.i += len(word)
+                return val
+        m = re.compile(r"-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?").match(self.t, self.i)
+        if m and m.end() > self.i and m.group(0) != "-":
+            self.i = m.end()
+            return float(m.group(0)) if (m.group(2) or m.group(3)) else int(m.group(0))
+        self.fail(f"unexpected character {c!r}")
+
+    def string(self):
+        t, out = self.t, []
+        self.i += 1
+        while True:
+            if self.i >= len(t):
+                self.fail("a text between quotes is never closed")
+            c = t[self.i]
+            if c == '"':
+                self.i += 1
+                return "".join(out)
+            if ord(c) < 0x20:
+                self.fail("a control character (tab or line break) is inside quotes")
+            if c == "\\":
+                e = t[self.i + 1:self.i + 2]
+                if e and e in '"\\/bfnrt':
+                    out.append({"b": "\b", "f": "\f", "n": "\n", "r": "\r", "t": "\t"}.get(e, e))
+                    self.i += 2
+                    continue
+                if e == "u" and re.fullmatch(r"[0-9a-fA-F]{4}", t[self.i + 2:self.i + 6]):
+                    out.append(chr(int(t[self.i + 2:self.i + 6], 16)))
+                    self.i += 6
+                    continue
+                self.fail("a wrong escape (\\) is inside quotes")
+            out.append(c)
+            self.i += 1
+
+    def arr(self):
+        self.i += 1
+        out = []
+        while True:
+            self.skip()
+            if self.t.startswith("]", self.i):
+                self.i += 1
+                return out
+            out.append(self.value())
+            self.skip()
+            if self.t.startswith(",", self.i):
+                self.i += 1
+                continue
+            if self.t.startswith("]", self.i):
+                self.i += 1
+                return out
+            self.fail("a comma or a ] is missing")
+
+    def obj(self):
+        self.i += 1
+        out = {}
+        while True:
+            self.skip()
+            if self.t.startswith("}", self.i):
+                self.i += 1
+                return out
+            if not self.t.startswith('"', self.i):
+                self.fail("a name between double quotes is expected")
+            key = self.string()
+            if key in out:
+                self.fail(f'the name "{key}" appears twice in the same block')
+            self.skip()
+            if not self.t.startswith(":", self.i):
+                self.fail("a colon (:) is missing")
+            self.i += 1
+            out[key] = self.value()
+            self.skip()
+            if self.t.startswith(",", self.i):
+                self.i += 1
+                continue
+            if self.t.startswith("}", self.i):
+                self.i += 1
+                return out
+            self.fail("a comma or a } is missing")
+
+
+def parse_jsonc(data):
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        raise JsoncError("it is not plain UTF-8 text")
+    text = text[1:] if text.startswith("﻿") else text
+    p = _Jsonc(text)
+    p.skip()
+    if not p.t.startswith("{", p.i):
+        p.fail("it does not start with {")
+    v = p.value()
+    p.skip()
+    if p.i != len(text):
+        p.fail("there is text after the last }")
+    return v
+
+
+# ---------------------------------------------------------------- rules, as OpenCode 2.1.4 matches them
+
+def _pattern_regex(pattern):
+    """OpenCode's Tb(): \\ -> /, * -> any text (/ included), ? -> one character, a final " *"
+    also matches nothing, case-sensitive, whole text."""
+    p = pattern.replace("\\", "/")
+    rx = "".join(".*" if ch == "*" else "." if ch == "?" else re.escape(ch) for ch in p)
+    if p.endswith(" *"):
+        rx = rx[:-len(re.escape(" ") + ".*")] + "( .*)?"
+    return re.compile(rx, re.S)
+
+
+def matches(text, pattern):
+    return _pattern_regex(pattern).fullmatch(text.replace("\\", "/")) is not None
+
+
+def _alternatives(pattern):
+    p = pattern.replace("\\", "/")
+    return [p, p[:-2]] if p.endswith(" *") else [p]
+
+
+def _intersect(p, q):
+    """True if some text matches both glob patterns (* and ? only)."""
+    @functools.lru_cache(maxsize=None)
+    def f(i, j):
+        if i == len(p) and j == len(q):
+            return True
+        if i < len(p) and p[i] == "*" and f(i + 1, j):
+            return True
+        if j < len(q) and q[j] == "*" and f(i, j + 1):
+            return True
+        if i < len(p) and j < len(q):
+            a, b = p[i], q[j]
+            if a == "*":
+                return f(i, j + 1)
+            if b == "*":
+                return f(i + 1, j)
+            if a == "?" or b == "?" or a == b:
+                return f(i + 1, j + 1)
+        return False
+    return f(0, 0)
+
+
+def intersects(rule_resource, scope):
+    return any(_intersect(a, s) for a in _alternatives(rule_resource) for s in _alternatives(scope))
+
+
+def covers(rule_resource, scope):
+    """Sure that every text of `scope` matches `rule_resource` (may answer False when unsure)."""
+    for r in _alternatives(rule_resource):
+        if r == "*" or r == scope:
+            return True
+        prefix = r[:-1]
+        if r.endswith("*") and "*" not in prefix and "?" not in prefix and scope.startswith(prefix):
+            return True
+        if "*" not in scope and "?" not in scope and matches(scope, r):
+            return True
+    return False
+
+
+def effect_of(rules, action, resource):
+    """OpenCode's evaluation: the last rule whose action and resource match; none: ask."""
+    for r in reversed(rules):
+        if matches(action, r["action"]) and matches(resource, r["resource"]):
+            return r["effect"]
+    return "ask"
+
+
+def scope_ok(rules, action, scope, allowed):
+    """True if, for EVERY resource of `scope`, the effect of `action` is in `allowed`."""
+    idx = [i for i, r in enumerate(rules) if matches(action, r["action"])]
+    good = [i for i in idx if rules[i]["effect"] in allowed and covers(rules[i]["resource"], scope)]
+    for i in idx:
+        if rules[i]["effect"] not in allowed and intersects(rules[i]["resource"], scope):
+            if not any(k > i for k in good):
+                return False
+    if "ask" not in allowed and not any(covers(rules[i]["resource"], scope) for i in idx):
+        return False
+    return True
+
+
+# ---------------------------------------------------------------- the checks
+
+def rel(path, start=None):
+    r = os.path.relpath(path, start or os.getcwd())
+    return path if r.startswith("../../") else r
+
+
+def show(path):
+    r = rel(path)
+    return f"{os.path.basename(path)}/ (the current folder)" if r == "." else r
+
+
+def arg(folder):
+    """The folder as a word of the next command: nothing when it is the current folder."""
+    return "" if folder == os.path.realpath(os.getcwd()) else " " + rel(folder)
+
+
+def walk(top, skip_git=False):
+    """Every path below top (directories, files, links), without following links."""
+    for root, dirs, files in os.walk(top, followlinks=False):
+        if skip_git and ".git" in dirs:
+            dirs.remove(".git")
+        for name in sorted(dirs) + sorted(files):
+            yield os.path.join(root, name)
+
+
+def git_top(folder):
+    d = folder
+    while True:
+        if os.path.lexists(os.path.join(d, ".git")):
+            return d
+        up = os.path.dirname(d)
+        if up == d:
+            return None
+        d = up
+
+
+def check_secrets(paths, base, problems):
+    for p in paths:
+        name = os.path.basename(p)
+        if SECRET_FILES.match(name):
+            problems.append(f"{rel(p, base)} is a kind of file that usually holds a secret (.env, .key...): "
+                            "remove it from the folder.")
+            continue
+        try:
+            with open(p, "rb") as f:
+                data = f.read()
+        except OSError:
+            problems.append(f"{rel(p, base)} cannot be read, so it cannot be checked.")
+            continue
+        for rx, what in SECRET_PATTERNS:
+            if rx.search(data):
+                problems.append(f"{rel(p, base)} contains something that looks like {what}: "
+                                "remove it, and cancel that key if it is a real one.")
+                break
+
+
+def check_comments(paths, base, problems):
+    for p in paths:
+        try:
+            with open(p, "rb") as f:
+                if b"<!--" in f.read():
+                    problems.append(f"{rel(p, base)} contains a hidden comment (<!-- ... -->): the chatbot "
+                                    "reads it, but the preview does not show it to you.")
+        except OSError:
+            problems.append(f"{rel(p, base)} cannot be read, so it cannot be checked.")
+
+
+def check_structure(folder, problems):
+    """Files of the folder that OpenCode would load, links, secrets. Returns the regular files."""
+    files, refused = [], []
+    for p in walk(folder):
+        r = os.path.relpath(p, folder)
+        parts = r.split(os.sep)
+        if any((r + os.sep).startswith(x + os.sep) for x in refused):
+            continue
+        st = os.lstat(p)
+        if stat.S_ISLNK(st.st_mode):
+            problems.append(f"{r} is a symbolic link: the rules follow the path as it is written, "
+                            "so a link could lead to your home folder, where your key is.")
+            continue
+        if not (stat.S_ISDIR(st.st_mode) or stat.S_ISREG(st.st_mode)):
+            problems.append(f"{r} is not an ordinary file or folder.")
+            continue
+        if parts[0] == ".opencode":
+            ok = (len(parts) == 1 or (parts[1] == "skills" and (
+                len(parts) == 2 or (len(parts) == 3 and stat.S_ISDIR(st.st_mode))
+                or (len(parts) == 4 and parts[3] == "SKILL.md" and stat.S_ISREG(st.st_mode)))))
+            if not ok:
+                problems.append(f"{r} is in .opencode/, which may only hold skills "
+                                "(.opencode/skills/NAME/SKILL.md): OpenCode loads plugins, tools and "
+                                "settings from there.")
+                refused.append(r)
+                continue
+        else:
+            name = parts[-1]
+            top_ok = (r == "opencode.jsonc" or r == "AGENTS.md")
+            if name in LOADED_ABOVE and not top_ok:
+                problems.append(f"{r} is a file or folder that OpenCode loads as instructions, settings "
+                                "or skills: remove it (only AGENTS.md, opencode.jsonc and .opencode/skills "
+                                "belong in the chatbot folder).")
+                refused.append(r)
+                continue
+        if stat.S_ISREG(st.st_mode):
+            files.append(p)
+    check_secrets(files, folder, problems)
+    return files
+
+
+def check_parents(folder, problems):
+    d = os.path.dirname(folder)
+    while True:
+        for name in LOADED_ABOVE:
+            p = os.path.join(d, name)
+            if os.path.lexists(p):
+                problems.append(f"{p} is in a folder above the chatbot: OpenCode loads it too, "
+                                "so it would change the chatbot. Move the chatbot folder, or remove it.")
+        up = os.path.dirname(d)
+        if up == d:
+            return
+        d = up
+
+
+def check_repository_links(folder, problems):
+    top = git_top(folder) or (REPO if inside(folder, REPO) else None)
+    if top is None or top == folder:
+        return
+    for p in walk(top, skip_git=True):
+        if os.path.islink(p) and not (p + os.sep).startswith(folder + os.sep):
+            problems.append(f"{p} is a symbolic link in the repository of the chatbot: "
+                            "a rule or a search could follow it outside.")
+
+
+BAD_KEYS = {
+    "provider": "it can send your key and your questions to another address (baseURL)",
+    "providers": "it can send your key and your questions to another address (baseURL)",
+    "plugin": "a plugin is a program that runs with your rights, outside every rule",
+    "plugins": "a plugin is a program that runs with your rights, outside every rule",
+    "model": "it chooses the model and its provider for you: choose it with /models",
+    "small_model": "it chooses a second model and its provider for you",
+    "share": "it can publish your conversations on the web",
+    "server": "it changes who can reach OpenCode",
+    "permission": "it is an older form of the rules, which the launcher does not check",
+    "agent": "it is an older form of the assistants, which the launcher does not check",
+    "mode": "it is an older form of the assistants, which the launcher does not check",
+    "tools": "it switches tools on or off outside the rules",
+    "experimental": "it switches on experimental tools",
+    "command": "it adds commands that can run programs",
+    "lsp": "it starts programs (language servers)",
+    "formatter": "it starts programs (formatters)",
+}
+TOP_KEYS = {"$schema", "default_agent", "instructions", "agents", "permissions", "mcp"}
+BUILT_IN_AGENTS = {"build", "plan", "general", "explore", "title"}
+CHATBOT_KEYS = {"mode", "description", "steps"}
+READ_ONLY_ACTIONS = {"read", "glob", "grep", "skill", "edit"}
+DENY_EVERYWHERE = ["shell", "external_directory", "webfetch", "websearch", "subagent", "execute",
+                   "question", "todowrite"]
+EDIT_DENY_FILES = ["opencode.jsonc", "opencode.json", "AGENTS.md", "CLAUDE.md", ".ignore",
+                   "knowledge/index.md", "knowledge/AGENTS.md", "knowledge/CLAUDE.md",
+                   "knowledge/opencode.json", "knowledge/opencode.jsonc"]
+EDIT_DENY_SCOPES = [".opencode/*", "mcp/*", "../*"]
+READ_DENY_SCOPES = ["*workshop-key*", "*.key", "*.env", "*.env.*", "*opencode.db*", "../*"]
+
+
+def inside(path, folder):
+    return (path + os.sep).startswith(folder + os.sep) and path != folder
+
+
+def check_config(folder, cfg, problems):
+    """Returns the names of the MCP servers (for the start message)."""
+    if not isinstance(cfg, dict):
+        problems.append("opencode.jsonc must be one block { ... }.")
+        return [], []
+    for k in cfg:
+        if k not in TOP_KEYS:
+            why = BAD_KEYS.get(k, "the launcher only accepts $schema, default_agent, instructions, "
+                                  "agents, permissions and mcp")
+            problems.append(f'opencode.jsonc has the setting "{k}", which is refused: {why}.')
+    if "$schema" in cfg and not isinstance(cfg["$schema"], str):
+        problems.append('In opencode.jsonc, "$schema" must be a text.')
+
+    # the assistant
+    agents = cfg.get("agents")
+    if cfg.get("default_agent") != "chatbot":
+        problems.append('In opencode.jsonc, "default_agent" must be "chatbot".')
+    if not isinstance(agents, dict) or not isinstance(agents.get("chatbot"), dict):
+        problems.append('opencode.jsonc must describe the assistant "chatbot" in "agents".')
+    else:
+        bot = agents["chatbot"]
+        for k in bot:
+            if k == "permissions":
+                problems.append('The assistant "chatbot" has its own "permissions": they come after the '
+                                "main rules and would override them. Put every rule in the main list.")
+            elif k not in CHATBOT_KEYS:
+                problems.append(f'The assistant "chatbot" has the setting "{k}", which is refused: the '
+                                "launcher only accepts mode, description and steps.")
+        if bot.get("mode", "primary") != "primary" or bot.get("disabled"):
+            problems.append('The assistant "chatbot" must have "mode": "primary".')
+        if "description" in bot and not isinstance(bot["description"], str):
+            problems.append('The "description" of the assistant "chatbot" must be a text.')
+        if "steps" in bot and not (isinstance(bot["steps"], int) and not isinstance(bot["steps"], bool)
+                                   and 1 <= bot["steps"] <= 100):
+            problems.append('The "steps" of the assistant "chatbot" must be a whole number from 1 to 100.')
+        for name, a in agents.items():
+            if name == "chatbot":
+                continue
+            if name not in BUILT_IN_AGENTS:
+                problems.append(f'opencode.jsonc adds the assistant "{name}": refused, the chatbot is the '
+                                "only assistant of the folder.")
+            elif a != {"disabled": True}:
+                problems.append(f'OpenCode\'s assistant "{name}" must stay {{ "disabled": true }}.')
+
+    # instructions: files of the folder only
+    instr = cfg.get("instructions", [])
+    if not isinstance(instr, list) or not all(isinstance(x, str) for x in instr):
+        problems.append('In opencode.jsonc, "instructions" must be a list of file names.')
+        instr = []
+    instruction_files = []
+    for x in instr:
+        full = os.path.normpath(os.path.join(folder, x))
+        if (re.search(r"[*?\[\]{}~]|^[a-zA-Z][a-zA-Z0-9+.-]*:", x) or os.path.isabs(x)
+                or not inside(full, folder)):
+            problems.append(f'"instructions" lists "{x}": only a file of the chatbot folder is accepted '
+                            "(no address, no pattern, nothing outside).")
+        elif os.path.islink(full) or not os.path.isfile(full):
+            problems.append(f'"instructions" lists "{x}", which is not a file of the folder.')
+        else:
+            instruction_files.append(full)
+
+    # MCP servers: the image's Python running a .py file of mcp/
+    servers = []
+    mcp = cfg.get("mcp", {})
+    if not isinstance(mcp, dict) or set(mcp) - {"servers"} or not isinstance(mcp.get("servers", {}), dict):
+        problems.append('In opencode.jsonc, "mcp" may only hold "servers".')
+        mcp = {}
+    for name, srv in mcp.get("servers", {}).items():
+        if not re.fullmatch(r"[A-Za-z0-9-]+", name):
+            problems.append(f'The MCP server "{name}" must have a simple name (letters, digits, -).')
+            continue
+        if not isinstance(srv, dict):
+            problems.append(f'The MCP server "{name}" must be a block {{ ... }}.')
+            continue
+        extra = set(srv) - {"type", "command", "codemode", "enabled", "timeout"}
+        if extra:
+            problems.append(f'The MCP server "{name}" has the setting "{sorted(extra)[0]}", which is refused '
+                            "(for example, environment variables can change what the program runs).")
+        if srv.get("type") != "local":
+            problems.append(f'The MCP server "{name}" is not "local": a remote server receives what the '
+                            "chatbot sends it, outside this Codespace.")
+            continue
+        cmd = srv.get("command")
+        script = cmd[1] if isinstance(cmd, list) and len(cmd) == 2 and all(isinstance(c, str) for c in cmd) else None
+        full = os.path.normpath(os.path.join(folder, script)) if script else None
+        if (script is None or cmd[0] != PYTHON or not script.endswith(".py") or script.startswith("-")
+                or not inside(full, os.path.join(folder, "mcp"))):
+            problems.append(f'The MCP server "{name}" must run {PYTHON} with one .py file of the folder '
+                            f"mcp/, and nothing else: it runs at every start, with your rights.")
+        elif os.path.islink(full) or not os.path.isfile(full):
+            problems.append(f'The program of the MCP server "{name}" ({script}) is not a file of mcp/.')
+        if srv.get("codemode") is not False:
+            problems.append(f'The MCP server "{name}" must have "codemode": false.')
+        if "enabled" in srv and not isinstance(srv["enabled"], bool):
+            problems.append(f'The "enabled" of the MCP server "{name}" must be true or false.')
+        if "timeout" in srv and not (isinstance(srv["timeout"], (int, float)) and not isinstance(srv["timeout"], bool)):
+            problems.append(f'The "timeout" of the MCP server "{name}" must be a number.')
+        servers.append(name)
+
+    # the rules
+    rules = cfg.get("permissions")
+    if not isinstance(rules, list) or not all(
+            isinstance(r, dict) and set(r) == {"action", "resource", "effect"}
+            and all(isinstance(r[k], str) for k in r) and r["effect"] in ("allow", "ask", "deny")
+            for r in rules):
+        problems.append('In opencode.jsonc, "permissions" must be a list of rules '
+                        '{ "action": ..., "resource": ..., "effect": "allow", "ask" or "deny" }.')
+        return servers, instruction_files
+    check_rules(rules, servers, problems)
+    return servers, instruction_files
+
+
+def check_rules(rules, servers, problems):
+    if not any(r == {"action": "*", "resource": "*", "effect": "deny"} for r in rules):
+        problems.append('The rules lack the base rule { "action": "*", "resource": "*", "effect": "deny" }: '
+                        "without it, an action that no rule names (for example a new tool) is allowed "
+                        "after one click.")
+    mcp_actions = [re.escape(s) + r"_(\*|[A-Za-z0-9_-]+)" for s in servers]
+    for r in rules:
+        if r["effect"] == "deny":
+            continue
+        a = r["action"]
+        known = a in READ_ONLY_ACTIONS or any(re.fullmatch(m, a) for m in mcp_actions)
+        if not known and re.fullmatch(r"[A-Za-z0-9-]+_(\*|[A-Za-z0-9_-]+)", a):
+            problems.append(f'A rule gives "{r["effect"]}" to "{a}", but this folder has no MCP server '
+                            f'"{a.split("_")[0]}": remove the rule, or it could let through the tools of '
+                            "another server with that name.")
+        elif not known:
+            problems.append(f'A rule gives "{r["effect"]}" to the action "{a}": only reading, searching, '
+                            "skills, documents of knowledge/ and the tools of this folder's MCP servers "
+                            "may be allowed or asked.")
+        if a == "edit":
+            if r["effect"] == "allow":
+                problems.append(f'A rule allows changing "{r["resource"]}" without asking: changing a '
+                                "file must always ask you first.")
+            elif not covers("knowledge/*", r["resource"]):
+                problems.append(f'A rule lets the chatbot change "{r["resource"]}": only the documents of '
+                                "knowledge/ may be changed, and only after asking you.")
+    for action in DENY_EVERYWHERE:
+        if not scope_ok(rules, action, "*", {"deny"}):
+            problems.append(f'The rules do not refuse "{action}" everywhere: '
+                            + {"shell": "a command could print your key or change any file.",
+                               "external_directory": "the chatbot could open files outside this "
+                                                     "repository, such as your key.",
+                               }.get(action, "this tool is not for this chatbot."))
+    for f in EDIT_DENY_FILES:
+        if effect_of(rules, "edit", f) != "deny":
+            problems.append(f'The rules do not refuse changing {f}: the chatbot could change its own '
+                            "instructions or settings.")
+    for s in EDIT_DENY_SCOPES:
+        if not scope_ok(rules, "edit", s, {"deny"}):
+            problems.append(f'The rules do not refuse changing "{s}": the chatbot could change its '
+                            "skills, its tools or files outside its folder.")
+    if not scope_ok(rules, "edit", "*", {"ask", "deny"}):
+        problems.append("The rules let the chatbot change a file without asking you first.")
+    for s in READ_DENY_SCOPES:
+        if not scope_ok(rules, "read", s, {"deny"}):
+            problems.append(f'The rules do not refuse reading "{s}": such files hold keys, or are '
+                            "outside the chatbot folder.")
+    for skill in ("opencode", "report"):
+        if effect_of(rules, "skill", skill) != "deny":
+            problems.append(f'The rules do not refuse OpenCode\'s own skill "{skill}".')
+
+
+def check(folder):
+    """All the checks. Returns (problems, mcp server names)."""
+    problems = []
+    for v in ENV_VARS:
+        if os.environ.get(v):
+            problems.append(f"The variable {v} is set in this terminal: OpenCode would use other "
+                            "settings than the checked ones. Open a new terminal, or type: unset " + v)
+    check_parents(folder, problems)
+    check_repository_links(folder, problems)
+    files = check_structure(folder, problems)
+    servers, instr = [], []
+    cfg_path = os.path.join(folder, "opencode.jsonc")
+    if not os.path.isfile(cfg_path) or os.path.islink(cfg_path):
+        problems.append("The folder has no opencode.jsonc: OpenCode would use its own settings, which "
+                        "allow almost everything.")
+    else:
+        with open(cfg_path, "rb") as f:
+            data = f.read()
+        if re.search(rb"\{(file|env):", data):
+            problems.append("opencode.jsonc contains {file:...} or {env:...}: OpenCode would copy a file or "
+                            "a variable (your key, for example) into the settings.")
+        try:
+            cfg = parse_jsonc(data)
+        except JsoncError as e:
+            problems.append(f"opencode.jsonc cannot be read ({e}): OpenCode would ignore all of it, the "
+                            "rules included.")
+        else:
+            servers, instr = check_config(folder, cfg, problems)
+    agents = os.path.join(folder, "AGENTS.md")
+    skills = [p for p in files if p.endswith(os.sep + "SKILL.md")]
+    check_comments(([agents] if os.path.isfile(agents) else []) + instr + skills, folder, problems)
+    return list(dict.fromkeys(problems)), servers
+
+
+# ---------------------------------------------------------------- commands
+
+def default_folder():
+    cwd = os.getcwd()
+    return cwd if os.path.isfile(os.path.join(cwd, "opencode.jsonc")) else TEMPLATE
+
+
+def resolve_folder(arg):
+    folder = os.path.realpath(arg if arg else default_folder())
+    if not os.path.isdir(folder):
+        sys.exit(f"{arg} is not a folder.\nNext: chatbot check FOLDER, with the folder of a chatbot.")
+    return folder
+
+
+def report(folder, problems):
+    for p in problems:
+        print("- " + p)
+    print(NOT_SAFE)
+    print(f"Next: fix it, then type: chatbot check{arg(folder)}")
+
+
+def cmd_check(args, start):
+    if len(args) > 1:
+        sys.exit("Too many words.\nNext: chatbot check FOLDER")
+    folder = resolve_folder(args[0] if args else None)
+    problems, servers = check(folder)
+    if problems:
+        print(f"Checking {show(folder)}:")
+        report(folder, problems)
+        return 1
+    if not start:
+        print(f"All checks passed: {show(folder)} is safe to start.")
+        print(f"Next: chatbot{arg(folder)}")
+        return 0
+    if shutil.which("opencode") is None:
+        print("All checks passed, but OpenCode is not installed here.")
+        print("Next: open the Codespace of this guide, and type chatbot there.")
+        return 127
+    print(f"All checks passed. Starting OpenCode in {show(folder)}.")
+    if servers:
+        print("Wait until the side panel shows " + " and ".join(f'"{s} Connected"' for s in servers)
+              + " before your first question (Ctrl+X then B shows the panel).")
+    sys.stdout.flush()
+    os.chdir(folder)
+    os.environ["PWD"] = folder
+    os.execvp("opencode", ["opencode"])
+
+
+def package_members(folder):
+    """The files of the content: AGENTS.md, knowledge/, .opencode/skills/*/SKILL.md."""
+    out = []
+    if os.path.isfile(os.path.join(folder, "AGENTS.md")):
+        out.append("AGENTS.md")
+    for p in walk(os.path.join(folder, "knowledge")):
+        r = os.path.relpath(p, folder).replace(os.sep, "/")
+        if os.path.isfile(p) and not os.path.islink(p) and allowed_member(r):
+            out.append(r)
+    sk = os.path.join(folder, ".opencode", "skills")
+    if os.path.isdir(sk):
+        for name in sorted(os.listdir(sk)):
+            r = f".opencode/skills/{name}/SKILL.md"
+            p = os.path.join(folder, *r.split("/"))
+            if os.path.isfile(p) and not os.path.islink(p) and allowed_member(r):
+                out.append(r)
+    return out
+
+
+def allowed_member(name):
+    if name == "AGENTS.md":
+        return True
+    parts = name.split("/")
+    if parts[0] == "knowledge" and len(parts) >= 2:
+        return all(x and not x.startswith(".") and x not in LOADED_ABOVE for x in parts[1:])
+    return (len(parts) == 4 and parts[:2] == [".opencode", "skills"] and parts[3] == "SKILL.md"
+            and re.fullmatch(r"[a-z0-9][a-z0-9-]*", parts[2]) is not None)
+
+
+PACKAGE_README = """# A chatbot package
+
+Made with `chatbot export` on {date}, from the folder `{name}`.
+
+It holds only the content of a chatbot: its instructions (`AGENTS.md`), its documents
+(`knowledge/`) and its skills (`.opencode/skills/`). It holds no settings, no tool program and no
+key.
+
+To use it, in the Codespace of the OpenCode guide, type:
+
+    chatbot import {zip}
+
+This creates a new chatbot folder with the guide's own settings and tool, then checks it. Read
+`AGENTS.md` and the skills before you start the chatbot: they say what it will do.
+"""
+
+
+def cmd_export(args):
+    folder_arg = next((a for a in args if not a.lower().endswith(".zip")), None)
+    zips = [a for a in args if a.lower().endswith(".zip")]
+    if len(args) > 2 or len(zips) > 1 or (len(args) == 2 and not zips):
+        sys.exit("Too many words.\nNext: chatbot export FOLDER FILE.zip")
+    folder = resolve_folder(folder_arg)
+    target = os.path.abspath(zips[0]) if zips else os.path.join(os.path.dirname(folder),
+                                                                os.path.basename(folder) + ".zip")
+    if os.path.lexists(target):
+        print(f"{rel(target)} already exists.")
+        print(f"Next: chatbot export{arg(folder)} OTHER-NAME.zip")
+        return 1
+    out_dir = os.path.realpath(os.path.dirname(target))
+    if out_dir == folder or inside(out_dir, folder):
+        print("Save the package outside the chatbot folder: it would end up in the next package.")
+        print(f"Next: chatbot export{arg(folder)} ../{os.path.basename(target)}")
+        return 1
+    problems = []
+    for p in walk(folder):
+        if os.path.islink(p):
+            problems.append(f"{os.path.relpath(p, folder)} is a symbolic link: remove it first.")
+    members = package_members(folder)
+    check_secrets([os.path.join(folder, *m.split("/")) for m in members], folder, problems)
+    check_comments([os.path.join(folder, *m.split("/")) for m in members
+                    if m == "AGENTS.md" or m.endswith("SKILL.md") or m == "knowledge/index.md"],
+                   folder, problems)
+    if problems:
+        for p in problems:
+            print("- " + p)
+        print("Nothing was exported.")
+        print(f"Next: fix it, then type: chatbot export{arg(folder)}")
+        return 1
+    tmp = target + ".part"
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
+        for m in members:
+            info = zipfile.ZipInfo(m, date_time=(2026, 1, 1, 0, 0, 0))
+            info.external_attr = (stat.S_IFREG | 0o644) << 16
+            info.compress_type = zipfile.ZIP_DEFLATED
+            with open(os.path.join(folder, *m.split("/")), "rb") as f:
+                z.writestr(info, f.read())
+        info = zipfile.ZipInfo("README.md", date_time=(2026, 1, 1, 0, 0, 0))
+        info.external_attr = (stat.S_IFREG | 0o644) << 16
+        z.writestr(info, PACKAGE_README.format(date=datetime.date.today().isoformat(),
+                                               name=os.path.basename(folder),
+                                               zip=os.path.basename(target)))
+    os.replace(tmp, target)
+    print(f"Exported {len(members)} files to {rel(target)}: AGENTS.md, knowledge/ and the skills.")
+    print("Not included: opencode.jsonc, mcp/ and every other file. The person who imports it gets "
+          "the guide's own settings and tool.")
+    print(f"Next: send {os.path.basename(target)}; the person types: chatbot import {os.path.basename(target)}")
+    return 0
+
+
+def cmd_import(args):
+    if not args or len(args) > 2 or not args[0].lower().endswith(".zip"):
+        sys.exit("Give the package first.\nNext: chatbot import FILE.zip NEW-FOLDER")
+    src = os.path.abspath(args[0])
+    if not os.path.isfile(src):
+        print(f"{args[0]} does not exist.")
+        print("Next: chatbot import FILE.zip NEW-FOLDER, with the package you received.")
+        return 1
+    stem = re.sub(r"[^A-Za-z0-9._-]", "-", os.path.basename(src)[:-4]).lstrip(".-") or "imported"
+    target = os.path.abspath(args[1]) if len(args) == 2 else os.path.join(REPO, stem)
+    target = os.path.join(os.path.realpath(os.path.dirname(target)), os.path.basename(target))
+    nxt = f"Next: chatbot import {args[0]} NEW-FOLDER, with a folder name that does not exist yet."
+    if os.path.lexists(target):
+        print(f"{show(target)} already exists: an import always creates a new folder.")
+        print(nxt)
+        return 1
+    d = os.path.dirname(target)
+    while True:
+        if os.path.lexists(os.path.join(d, "opencode.jsonc")) or os.path.lexists(os.path.join(d, "opencode.json")):
+            print(f"{rel(target)} would be inside another chatbot folder ({show(d)}).")
+            print(nxt)
+            return 1
+        if os.path.dirname(d) == d:
+            break
+        d = os.path.dirname(d)
+    tproblems, _ = check(TEMPLATE)
+    if tproblems:
+        print(f"The template of this guide ({rel(TEMPLATE)}) does not pass the checks, so it cannot be copied:")
+        report(TEMPLATE, tproblems)
+        return 1
+    try:
+        z = zipfile.ZipFile(src)
+        infos = z.infolist()
+    except (OSError, zipfile.BadZipFile):
+        print(f"{args[0]} is not a zip package that can be opened.")
+        print("Next: ask the person who sent it to make it again with chatbot export.")
+        return 1
+    bad, ignored, keep, seen, total = [], [], [], set(), 0
+    for info in infos:
+        n = info.filename
+        mode = info.external_attr >> 16
+        if n.startswith("/") or "\\" in n or re.match(r"^[A-Za-z]:", n) or any(ord(c) < 32 for c in n):
+            bad.append(f"{n!r} has an absolute or strange path")
+        elif ".." in n.split("/"):
+            bad.append(f"{n} goes up with ..")
+        elif stat.S_ISLNK(mode):
+            bad.append(f"{n} is a symbolic link")
+        elif n in seen:
+            bad.append(f"{n} appears twice")
+        elif info.is_dir():
+            continue
+        elif stat.S_IFMT(mode) not in (0, stat.S_IFREG):
+            bad.append(f"{n} is not an ordinary file")
+        elif n == "README.md":
+            continue
+        elif allowed_member(n):
+            keep.append(info)
+            total += info.file_size
+        else:
+            ignored.append(n)
+        seen.add(n)
+    if len(infos) > MAX_PACKAGE_FILES or total > MAX_PACKAGE_BYTES:
+        bad.append("it is too big for a chatbot package")
+    if bad:
+        for b in bad:
+            print(f"- {b}.")
+        print("This package is not safe: nothing was imported.")
+        print("Next: ask the person who sent it to make it again with chatbot export.")
+        return 1
+    tmp = tempfile.mkdtemp(prefix=".import-", dir=os.path.dirname(target))
+    try:
+        for name in ("opencode.jsonc", ".ignore"):
+            if os.path.isfile(os.path.join(TEMPLATE, name)):
+                shutil.copyfile(os.path.join(TEMPLATE, name), os.path.join(tmp, name))
+        os.mkdir(os.path.join(tmp, "mcp"))
+        for name in sorted(os.listdir(os.path.join(TEMPLATE, "mcp"))):
+            p = os.path.join(TEMPLATE, "mcp", name)
+            if os.path.isfile(p) and not os.path.islink(p) and not name.startswith("."):
+                shutil.copyfile(p, os.path.join(tmp, "mcp", name))
+        for info in keep:
+            dest = os.path.join(tmp, *info.filename.split("/"))
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            fd = os.open(dest, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
+            with os.fdopen(fd, "wb") as f, z.open(info) as data:
+                shutil.copyfileobj(data, f)
+        os.makedirs(os.path.join(tmp, "knowledge"), exist_ok=True)
+        notes = []
+        if not os.path.exists(os.path.join(tmp, "knowledge", "index.md")):
+            with open(os.path.join(tmp, "knowledge", "index.md"), "w") as f:
+                f.write("# Knowledge of the chatbot\n\nOne line per document of this folder.\n")
+            notes.append("The package had no knowledge/index.md: an empty list was created.")
+        problems = []
+        check_secrets([os.path.join(tmp, *i.filename.split("/")) for i in keep], tmp, problems)
+        if problems:
+            for p in problems:
+                print("- " + p)
+            print("This package is not safe: nothing was imported.")
+            print("Next: ask the person who sent it to remove the secret and export it again.")
+            shutil.rmtree(tmp)
+            return 1
+        os.rename(tmp, target)
+    except BaseException:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
+    finally:
+        z.close()
+    print(f"Created {rel(target)}: the guide's settings and tool, and {len(keep)} "
+          f"file{'s' if len(keep) != 1 else ''} of the package.")
+    for n in notes:
+        print(n)
+    if ignored:
+        print("Ignored (not part of a chatbot's content): " + ", ".join(ignored))
+    problems, _ = check(target)
+    if problems:
+        print(f"Checking {rel(target)}:")
+        report(target, problems)
+        return 1
+    print("All checks passed. Read AGENTS.md and the skills first: they say what the chatbot will do.")
+    print(f"Next: chatbot{arg(target)}")
+    return 0
+
+
+HELP = """chatbot: check a chatbot folder, then start OpenCode in it.
+
+  chatbot [FOLDER]                       check, then start OpenCode in the folder
+  chatbot check [FOLDER]                 the checks only
+  chatbot export [FOLDER] [FILE.zip]     a package of the content only (no settings, no key)
+  chatbot import FILE.zip [NEW-FOLDER]   a new chatbot folder from a package
+
+Without FOLDER: the current folder if it holds opencode.jsonc, else the folder chatbot/.
+Next: chatbot check"""
+
+
+def main(argv):
+    if argv and argv[0] in ("-h", "--help", "help"):
+        print(HELP)
+        return 0
+    if argv and argv[0] == "check":
+        return cmd_check(argv[1:], start=False)
+    if argv and argv[0] == "export":
+        return cmd_export(argv[1:])
+    if argv and argv[0] == "import":
+        return cmd_import(argv[1:])
+    if argv and argv[0].startswith("-"):
+        print(f"Unknown option {argv[0]}.\nNext: chatbot --help")
+        return 2
+    return cmd_check(argv, start=True)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

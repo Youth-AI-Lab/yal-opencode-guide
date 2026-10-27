@@ -7,6 +7,11 @@
   // A pinned tag, never `latest`: each version of the guide is tested with one image.
   "image": "ghcr.io/youth-ai-lab/yal-workshop-devcontainer:2026.10.26",
   "remoteUser": "vscode",
+  // The command `chatbot` of this guide (bin/chatbot): it checks a chatbot folder, then starts
+  // OpenCode in it. bin/ comes first; the image's own folders follow, unchanged.
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}/bin:${containerEnv:PATH}"
+  },
   "hostRequirements": { "cpus": 2 },
   // OpenCode's background service listens on this port, for OpenCode itself: no notice offering
   // to open it in the browser.

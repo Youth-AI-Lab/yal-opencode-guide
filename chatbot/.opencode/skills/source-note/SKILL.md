@@ -27,7 +27,8 @@ chatbot can use it in later conversations.
    <the facts, one per sentence>
    ```
 
-5. Add one line for it at the end of `knowledge/index.md`, in the same form as the others.
+5. Do not change `knowledge/index.md`: the chatbot is not allowed to. Give the user the line to
+   add at the end of it, in the same form as the others, and tell them to add it in the editor.
 6. Show the document to the user and ask them to check it.
 7. If the document contradicts another document of `knowledge/`, say so explicitly and offer to
    update or delete the old one. Do not decide alone.
@@ -36,5 +37,6 @@ chatbot can use it in later conversations.
 
 - Invent a source, an organisation or a figure to "complete" the document.
 - Change an existing document without the user's agreement.
-- Create or change a file with a shell command (`cat >`, `sed -i`, `echo >`…): use the write and
-  edit tools, so that the person sees exactly what changes before accepting.
+- Create or change a file with a shell command (`cat >`, `sed -i`, `echo >`…): use OpenCode's
+  file tools (write and edit, or patch with some models), so that the person sees exactly what
+  changes before accepting.
