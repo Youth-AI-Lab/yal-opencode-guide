@@ -838,12 +838,16 @@ official source says, on the day. If the season is over, write it in `"level"`.
 Many MCP servers exist: for a calendar, a database, a website. Each one is a program that runs with
 your rights and can send your data elsewhere. This guide covers only small programs of your own
 folder, like `fire-danger`: the command `chatbot` accepts an MCP server only if it is a Python
-file of the folder `mcp/`, run with the Python of the Codespace, and refuses a remote server or a
-program installed from elsewhere (with `npx`, for example). If you add a program to `mcp/`:
+file of the folder `mcp/`, run as `python -I` (so it loads no code from the folder or the
+terminal), and refuses a remote server or a program installed from elsewhere (with `npx`, for
+example). It also refuses to start a folder from someone else whose `mcp/` program is not the
+guide's own, because it cannot check what a program does: to reuse a chatbot, import it as a
+package (`chatbot import`), which brings the guide's tool. If you write your own tool, add it to
+the guide's `chatbot/mcp/` and `opencode.jsonc` (it then becomes the reference the launcher trusts):
 
 - use only code from a source you trust, and read what it does: it runs at every start;
 - add it in the `"mcp"` part of `opencode.jsonc`, in the same form as `fire-danger`, with
-  `"codemode": false`, so that its tools are given to the model directly;
+  `["/opt/workshop/venv/bin/python", "-I", "mcp/NAME.py"]` and `"codemode": false`;
 - do **not** add a rule that allows its tools without asking, unless they only read harmless
   data, as `fire-danger` does. Without such a rule, the base rule refuses its tools: add a rule
   `{ "action": "NAME_*", "resource": "*", "effect": "ask" }` (with the name of the server), and
@@ -892,12 +896,13 @@ Next: chatbot
 | `opencode.jsonc` has no mistake | with one missing comma, OpenCode ignores the whole file, rules included, without a message |
 | the rules of [the configuration file](#under-the-hood-the-configuration-file) are there, and no later rule undoes them | for each action, the last rule that matches wins: one extra line at the end can cancel a rule |
 | the settings hold only the chatbot, its rules and its tools | other settings can add a plugin (a program), send your key to another address, choose a model for you, publish your conversations, or copy a file such as your key into the settings |
-| each MCP server is a Python file of `mcp/`, run with the Python of the Codespace | a tool program starts as soon as OpenCode starts, with your rights, outside every rule |
-| there is no other settings or instructions file, in the folder or in any folder above it | OpenCode also loads `opencode.json`, `AGENTS.md`, `CLAUDE.md`, `.opencode/`, `.claude/` and `.agents/` from the folders above, and some of them from the sub-folders |
+| each MCP server is run as `python -I` on one Python file of `mcp/` | a tool program starts as soon as OpenCode starts, with your rights, outside every rule; `-I` keeps it from loading code from the folder or from the terminal |
+| in a folder that is not the guide's own, each `mcp/` program is, byte for byte, one of the guide's | the launcher cannot tell whether a program is safe, so it trusts only the ones it ships (its sharing goes through `chatbot import`, which brings the guide's tool); the daily data file `mcp/fire-danger.json` may differ |
+| there is no other settings or instructions file, in the folder, in any folder above it, or in your home folder (`~/.config/opencode`) | OpenCode also loads `opencode.json`, `AGENTS.md`, `CLAUDE.md`, `.opencode/`, `.claude/` and `.agents/` from the folders above and from the home folder, and merges them in |
 | there is no symbolic link, in the folder or in the repository around it | the rules follow the path of a file as it is written, not where a link leads: a link named like a document could lead to your home folder |
-| there is no file named like a secret (`.env`, `*.key`...), and no text that looks like a key | a search can read a file that the rules forbid to open (see [below](#what-the-rules-cannot-stop)) |
-| there is no hidden note between `<!--` and `-->` in `AGENTS.md`, `knowledge/index.md` or a skill | the model reads it, but the preview of VS Code does not show it to you |
-| no variable such as `OPENCODE_CONFIG` is set in the terminal | it would make OpenCode load other settings than the checked ones |
+| there is no file named like a secret (`.env`, `*.key`, case ignored...), and no text that looks like a key | a search can read a file that the rules forbid to open (see [below](#what-the-rules-cannot-stop)) |
+| there is no hidden note (between `<!--` and `-->`, or a `[...]: #` reference line) in any file the model reads | the model reads it, but the preview of VS Code does not show it to you |
+| no variable such as `OPENCODE_CONFIG`, `ANTHROPIC_BASE_URL` or `PYTHONPATH` is set in the terminal | it would make OpenCode load other settings, send your key elsewhere, or run extra code |
 
 When something is unknown to it, `chatbot` refuses: it is made to fail safe.
 
@@ -911,7 +916,7 @@ and a hidden note:
 Checking my-topic/ (the current folder):
 - knowledge/notes.md is a symbolic link: the rules follow the path as it is written, so a link could lead to your home folder, where your key is.
 - .env is a kind of file that usually holds a secret (.env, .key...): remove it from the folder.
-- AGENTS.md contains a hidden comment (<!-- ... -->): the chatbot reads it, but the preview does not show it to you.
+- AGENTS.md contains a hidden comment (<!-- ... --> or [...]: #): the chatbot reads it, but the preview does not show it to you.
 This chatbot is not safe to start. Fix it, or ask the person who sent it.
 Next: fix it, then type: chatbot check
 ```
@@ -1002,9 +1007,10 @@ chatbot check ../received-folder
 
 `chatbot check` starts nothing. It looks for everything listed in
 [Always start with `chatbot`](#always-start-with-chatbot): settings that can be read and keep
-every rule, MCP programs of `mcp/` only, no other configuration in the folder or above it, no
-symbolic link, nothing that looks like a key, and no hidden note. If one check fails, do not start
-the chatbot: fix it, or ask the person who sent it.
+every rule, a tool program of `mcp/` that is the guide's own, no other configuration in the folder,
+above it or in your home folder, no symbolic link, nothing that looks like a key, and no hidden
+note. If one check fails, do not start the chatbot: fix it, or **better, import it as a package**
+(`chatbot import`), which keeps only the content and gives it the guide's own settings and tool.
 
 **"All checks passed" means that the rules hold, not that the chatbot is good.** Read `AGENTS.md`,
 the documents and the skills before you start it: they say what the chatbot will do and answer.
@@ -1041,8 +1047,9 @@ it, also with paths that go up with `..`), writing `AGENTS.md` in `knowledge/`, 
 `knowledge/index.md`, writing a skill in `.opencode/skills/`, `.claude/skills/` or
 `.agents/skills/`, reading the key in the home folder, searching it, running a command, opening a
 web page. Each one was refused, even when every question was answered "yes". Writing a document in
-`knowledge/` still worked after a "yes". Then we tested the command `chatbot` on 64 versions of
-the folder, safe and unsafe: it gave the expected answer each time (57 refused, 7 accepted).
+`knowledge/` still worked after a "yes". Then we tested the command `chatbot` on 73 versions of
+the folder, safe and unsafe: it gave the expected answer each time (66 refused, 7 accepted), plus
+26 export and import flows and a set of folders carrying a changed tool program.
 
 #### The rules to keep
 
@@ -1397,10 +1404,13 @@ make the folder yourself, ask the person who sent it.
 | `The rules do not refuse ...`, `The rules lack the base rule ...`, `A rule allows ...`, `A rule lets the chatbot change ...`, `A rule gives "allow" ...` or `A rule gives "ask" ...` | a rule of the guide is missing, or a rule you added undoes it. Put the guide's rules back: in `chatbot/`, type `git restore opencode.jsonc`; in a copy, type `cp ../chatbot/opencode.jsonc .`. Then make your change again, as a `deny` rule if you can |
 | `A rule gives "allow" to "fire-danger_*", but this folder has no MCP server "fire-danger"` | you removed the tool: remove its rule 10 too |
 | `opencode.jsonc has the setting "...", which is refused` | remove this setting: the chatbot of this guide does not need it. Choose the model with `/models`, never in the file |
-| `The MCP server "..." must run ...` or `... is not "local"` | an MCP server of this guide is a Python file of `mcp/`, in the same form as `fire-danger` ([part 6](#other-mcp-servers)) |
+| `The MCP server "..." must run ...` or `... is not "local"` | an MCP server of this guide is a Python file of `mcp/`, run with `-I`, in the same form as `fire-danger` ([part 6](#other-mcp-servers)) |
+| `mcp/... is not one of the guide's own tool programs` | you are starting a folder from somewhere else whose tool program is not the guide's. Do not run it: import the chatbot as a package instead (`chatbot import`), which brings the guide's own tool |
 | `... is a symbolic link` | delete the link, and put a real file in its place if you need it |
 | `... is a kind of file that usually holds a secret` or `... contains something that looks like ...` | move the file out of the repository, or remove the key from it. If it is a real key, cancel it at the provider and make a new one |
-| `... contains a hidden comment (<!-- ... -->)` | remove the note, or write it as visible text |
+| `... contains a hidden comment (<!-- ... --> or [...]: #)` | remove the note, or write it as visible text |
+| `The variable ... is set in this terminal` | open a new terminal, or type `unset` and the name of the variable, then start again |
+| `... is a global OpenCode setting or instruction in your home folder` | move that file out of `~/.config/opencode` (or `~/.opencode`), or ask the facilitator: OpenCode merges it into every chatbot |
 | `... is in .opencode/, which may only hold skills` or `... is a file or folder that OpenCode loads ...` | delete it. Skills go in `.opencode/skills/NAME/SKILL.md`, instructions in `AGENTS.md` |
 | `... is in a folder above the chatbot` | a settings or instructions file sits in a folder above the chatbot, which happens outside the Codespace, for example on your own computer. Use the Codespace of this guide, or move the chatbot folder |
 | `The variable OPENCODE_CONFIG is set in this terminal` (or another `OPENCODE_` variable) | open a new terminal (the **+** of the terminal panel), or type the `unset` command that the line gives |

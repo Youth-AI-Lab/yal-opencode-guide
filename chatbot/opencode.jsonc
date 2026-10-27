@@ -98,7 +98,9 @@
     "servers": {
       "fire-danger": {
         "type": "local",
-        "command": ["/opt/workshop/venv/bin/python", "mcp/fire_danger_server.py"],
+        // "-I": the program runs on its own, without loading code from this folder or from a
+        // variable of your terminal, so nothing can slip in beside it.
+        "command": ["/opt/workshop/venv/bin/python", "-I", "mcp/fire_danger_server.py"],
         // The tools are given to the model directly (not through OpenCode's "Code Mode").
         "codemode": false
       }

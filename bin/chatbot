@@ -31,17 +31,30 @@ TEMPLATE = os.path.join(REPO, "chatbot")
 NOT_SAFE = "This chatbot is not safe to start. Fix it, or ask the person who sent it."
 ENV_VARS = ["OPENCODE_CONFIG", "OPENCODE_CONFIG_CONTENT", "OPENCODE_CONFIG_DIR",
             "OPENCODE_CONFIG_PROJECT_DISABLE", "OPENCODE_DISABLE_PROJECT_CONFIG"]
+# Variables of the terminal that could send your key elsewhere or run extra code, whatever the
+# checked settings say. A fresh Codespace has none of them set.
+INJECT_VARS = ["ANTHROPIC_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE", "GOOGLE_GEMINI_BASE_URL",
+               "OPENROUTER_BASE_URL", "NODE_OPTIONS", "PYTHONPATH", "PYTHONSTARTUP", "XDG_CONFIG_HOME"]
+# Where OpenCode reads a global configuration or global instructions, outside the chatbot folder.
+GLOBAL_CONFIG = ["opencode.json", "opencode.jsonc", "AGENTS.md"]
 LOADED_ABOVE = ["opencode.json", "opencode.jsonc", ".opencode", ".claude", ".agents", "AGENTS.md", "CLAUDE.md"]
 SECRET_PATTERNS = [
     (re.compile(rb"sk-ant-[A-Za-z0-9_-]{6,}"), "an Anthropic key (sk-ant-...)"),
     (re.compile(rb"sk-or-[A-Za-z0-9_-]{6,}"), "an OpenRouter key (sk-or-...)"),
+    (re.compile(rb"sk-proj-[A-Za-z0-9_-]{6,}"), "an OpenAI key (sk-proj-...)"),
+    (re.compile(rb"(?<![A-Za-z0-9])sk-[A-Za-z0-9]{20,}"), "an OpenAI key (sk-...)"),
+    (re.compile(rb"gsk_[A-Za-z0-9]{20,}"), "a Groq key (gsk_...)"),
+    (re.compile(rb"(?<![A-Za-z0-9])AKIA[0-9A-Z]{16}"), "an AWS key (AKIA...)"),
     (re.compile(rb"(?<![A-Za-z0-9])AQ\.[A-Za-z0-9_-]{16,}"), "a Google key (AQ....)"),
     (re.compile(rb"AIza[0-9A-Za-z_-]{20,}"), "a Google key (AIza...)"),
     (re.compile(rb"gh[pousr]_[A-Za-z0-9]{20,}"), "a GitHub token (ghp_...)"),
     (re.compile(rb"github_pat_[A-Za-z0-9_]{20,}"), "a GitHub token (github_pat_...)"),
     (re.compile(rb"-----BEGIN"), "a private key or a certificate (-----BEGIN ...)"),
 ]
-SECRET_FILES = re.compile(r"^(\.env|\.env\..*|.*\.env|.*\.key|.*\.pem|.*workshop-key.*)$")
+# Case-insensitive: OpenCode's own read-deny rules are case-sensitive too, so a file named
+# my.KEY or .ENV would be both accepted here and readable by the model.
+SECRET_FILES = re.compile(r"^(\.env|\.env\..*|.*\.env|.*\.key|.*\.pem|.*workshop-key.*|.*opencode\.db.*)$",
+                          re.IGNORECASE)
 MAX_PACKAGE_FILES, MAX_PACKAGE_BYTES = 2000, 50 * 1024 * 1024
 
 
@@ -329,13 +342,17 @@ def check_secrets(paths, base, problems):
                 break
 
 
+HIDDEN_COMMENT = re.compile(rb"<!--|^\s*\[[^\]]*\]:\s*#", re.MULTILINE)
+
+
 def check_comments(paths, base, problems):
     for p in paths:
         try:
             with open(p, "rb") as f:
-                if b"<!--" in f.read():
-                    problems.append(f"{rel(p, base)} contains a hidden comment (<!-- ... -->): the chatbot "
-                                    "reads it, but the preview does not show it to you.")
+                if HIDDEN_COMMENT.search(f.read()):
+                    problems.append(f"{rel(p, base)} contains a hidden comment (<!-- ... --> or "
+                                    "[...]: #): the chatbot reads it, but the preview does not show "
+                                    "it to you.")
         except OSError:
             problems.append(f"{rel(p, base)} cannot be read, so it cannot be checked.")
 
@@ -395,14 +412,92 @@ def check_parents(folder, problems):
         d = up
 
 
+_SUBST = re.compile(r"\{(file|env):")
+
+
+def _has_substitution(value):
+    if isinstance(value, str):
+        return _SUBST.search(value) is not None
+    if isinstance(value, dict):
+        return any(_has_substitution(k) or _has_substitution(v) for k, v in value.items())
+    if isinstance(value, list):
+        return any(_has_substitution(v) for v in value)
+    return False
+
+
+def check_global(problems):
+    """Global OpenCode configuration or instructions in the home folder: OpenCode merges them with
+    the folder's settings, and the launcher never saw them. A fresh Codespace has none."""
+    home = os.path.expanduser("~")
+    dirs = [os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.join(home, ".config"), "opencode"),
+            os.path.join(home, ".opencode"), os.path.join(home, ".config", "opencode")]
+    seen = set()
+    for d in dirs:
+        rd = os.path.realpath(d)
+        if rd in seen:
+            continue
+        seen.add(rd)
+        for name in GLOBAL_CONFIG:
+            p = os.path.join(d, name)
+            if os.path.lexists(p):
+                problems.append(f"{p} is a global OpenCode setting or instruction in your home folder: "
+                                "OpenCode merges it with the chatbot's, so the chatbot would not be "
+                                "the one that was checked. Move it away, or ask the facilitator.")
+
+
 def check_repository_links(folder, problems):
-    top = git_top(folder) or (REPO if inside(folder, REPO) else None)
-    if top is None or top == folder:
+    # The outermost repository around the folder: the guide's own repository when the folder is
+    # inside it, otherwise the top git folder ABOVE the chatbot (never the folder's own .git, which
+    # a received folder could plant to blind this check).
+    if inside(folder, REPO) or os.path.realpath(folder) == os.path.realpath(REPO):
+        top = REPO
+    else:
+        top = git_top(os.path.dirname(folder))
+    if top is None or os.path.realpath(top) == os.path.realpath(folder):
         return
-    for p in walk(top, skip_git=True):
+    # No skip_git here: a link named .git, or a link inside .git, must be seen too.
+    for p in walk(top):
         if os.path.islink(p) and not (p + os.sep).startswith(folder + os.sep):
             problems.append(f"{p} is a symbolic link in the repository of the chatbot: "
                             "a rule or a search could follow it outside.")
+
+
+def check_mcp_programs(folder, problems):
+    """Every program (.py) under mcp/ must be, byte for byte, one of the guide's own programs.
+    The launcher cannot tell whether a Python program is safe, so it only trusts the ones it ships:
+    this closes a changed fire_danger_server.py and any extra .py dropped beside it. The data file
+    mcp/fire-danger.json may differ (the facilitator fills in today's level)."""
+    tmpl_dir = os.path.join(TEMPLATE, "mcp")
+    folder_dir = os.path.join(folder, "mcp")
+    if os.path.realpath(folder_dir) == os.path.realpath(tmpl_dir):
+        return  # the guide's own folder: its programs are the reference
+    known = {}
+    if os.path.isdir(tmpl_dir):
+        for p in walk(tmpl_dir):
+            if os.path.isfile(p) and not os.path.islink(p) and p.endswith(".py"):
+                try:
+                    with open(p, "rb") as f:
+                        known[os.path.relpath(p, tmpl_dir)] = f.read()
+                except OSError:
+                    pass
+    if not os.path.isdir(folder_dir):
+        return
+    for p in walk(folder_dir):
+        if not (os.path.isfile(p) and not os.path.islink(p) and p.endswith(".py")):
+            continue
+        rp = os.path.relpath(p, folder_dir)
+        try:
+            with open(p, "rb") as f:
+                data = f.read()
+        except OSError:
+            problems.append(f"mcp/{rp} cannot be read, so it cannot be checked.")
+            continue
+        if known.get(rp) != data:
+            problems.append(f"mcp/{rp} is not one of the guide's own tool programs (or it was "
+                            "changed): the launcher cannot check what a program does, so it only "
+                            "starts a folder whose mcp/ programs are the guide's. Import the "
+                            "chatbot as a package instead (chatbot import), which brings the "
+                            "guide's own tool.")
 
 
 BAD_KEYS = {
@@ -523,12 +618,15 @@ def check_config(folder, cfg, problems):
                             "chatbot sends it, outside this Codespace.")
             continue
         cmd = srv.get("command")
-        script = cmd[1] if isinstance(cmd, list) and len(cmd) == 2 and all(isinstance(c, str) for c in cmd) else None
+        # Required form: PYTHON -I mcp/<name>.py. "-I" (isolated mode) stops the program from
+        # loading code from its own folder or from a variable of the terminal (PYTHONPATH), so a
+        # second file dropped in mcp/ (for example mcp/json.py) can never run in its place.
+        script = cmd[2] if isinstance(cmd, list) and len(cmd) == 3 and all(isinstance(c, str) for c in cmd) else None
         full = os.path.normpath(os.path.join(folder, script)) if script else None
-        if (script is None or cmd[0] != PYTHON or not script.endswith(".py") or script.startswith("-")
-                or not inside(full, os.path.join(folder, "mcp"))):
-            problems.append(f'The MCP server "{name}" must run {PYTHON} with one .py file of the folder '
-                            f"mcp/, and nothing else: it runs at every start, with your rights.")
+        if (script is None or cmd[0] != PYTHON or cmd[1] != "-I" or not script.endswith(".py")
+                or script.startswith("-") or not inside(full, os.path.join(folder, "mcp"))):
+            problems.append(f'The MCP server "{name}" must run exactly [{PYTHON}, "-I", one .py file '
+                            f"of mcp/] and nothing else: it runs at every start, with your rights.")
         elif os.path.islink(full) or not os.path.isfile(full):
             problems.append(f'The program of the MCP server "{name}" ({script}) is not a file of mcp/.')
         if srv.get("codemode") is not False:
@@ -611,8 +709,14 @@ def check(folder):
         if os.environ.get(v):
             problems.append(f"The variable {v} is set in this terminal: OpenCode would use other "
                             "settings than the checked ones. Open a new terminal, or type: unset " + v)
+    for v in INJECT_VARS:
+        if os.environ.get(v):
+            problems.append(f"The variable {v} is set in this terminal: it could send your key "
+                            "elsewhere or run extra code. Open a new terminal, or type: unset " + v)
+    check_global(problems)
     check_parents(folder, problems)
     check_repository_links(folder, problems)
+    check_mcp_programs(folder, problems)
     files = check_structure(folder, problems)
     servers, instr = [], []
     cfg_path = os.path.join(folder, "opencode.jsonc")
@@ -631,10 +735,19 @@ def check(folder):
             problems.append(f"opencode.jsonc cannot be read ({e}): OpenCode would ignore all of it, the "
                             "rules included.")
         else:
+            # After parsing too: a {file:...} or {env:...} written with escapes (file) passes
+            # the raw check above, but OpenCode fills it in once the text is decoded.
+            if _has_substitution(cfg):
+                problems.append("opencode.jsonc asks for {file:...} or {env:...}: OpenCode would copy a "
+                                "file or a variable (your key, for example) into the settings.")
             servers, instr = check_config(folder, cfg, problems)
+    # Every file OpenCode could send to the model verbatim: AGENTS.md, the instruction files, the
+    # skills, and every document (a hidden comment in any .md the model reads is an instruction the
+    # editor does not show you).
     agents = os.path.join(folder, "AGENTS.md")
-    skills = [p for p in files if p.endswith(os.sep + "SKILL.md")]
-    check_comments(([agents] if os.path.isfile(agents) else []) + instr + skills, folder, problems)
+    markdown = [p for p in files if p.endswith(".md") or p.endswith(".markdown")]
+    to_scan = ([agents] if os.path.isfile(agents) else []) + instr + markdown
+    check_comments(list(dict.fromkeys(to_scan)), folder, problems)
     return list(dict.fromkeys(problems)), servers
 
 
