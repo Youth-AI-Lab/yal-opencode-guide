@@ -467,10 +467,14 @@ you should not see it.
 The grey example text in the message box, "Fix broken tests", is OpenCode's own, made for
 programmers: ignore it.
 
+![OpenCode just after it opens in the chatbot folder: the OpenCode logo, the message box, and the bottom line "Chatbot · Claude Sonnet 5.5 · Anthropic"](images/01-welcome.png)
+
 ### Step 3 - Connect your key or subscription
 
 In the message box, type `/connect` and press Enter. OpenCode lists the providers. Choose yours,
 then follow what it asks:
+
+![The list that `/connect` opens, "Connect an integration": OpenAI, GitHub Copilot, Anthropic, Google and more](images/04-connect.png)
 
 | Your way | Choose | Then |
 |---|---|---|
@@ -497,6 +501,8 @@ models of all the providers you connected), for example **Claude Sonnet 5.5** (A
 (Google) or **GPT-6 Sol** (OpenAI). The bottom of the window now shows the chatbot, the model and
 its provider, for example **Chatbot · Claude Sonnet 5.5 · Anthropic**.
 
+![The list that `/models` opens, "Select model", with Claude Haiku, Sonnet and Opus highlighted](images/03-model-picker.png)
+
 In a Codespace, `/models` may list **GitHub Copilot** models even before you connect anything: they
 come from the Codespace's own access to GitHub, and we have not checked that they answer. To use
 Copilot, connect your account with `/connect` as in step 3.
@@ -507,6 +513,8 @@ OpenCode starts the chatbot's tool, the small program of the folder `mcp/`, a fe
 opens. Look at the side panel on the right: wait until it shows **fire-danger Connected**. A
 question sent before that goes without the tool. No side panel? Press `Ctrl+X` then `B` to show
 it, or type `/mcps` to see the state of the tool.
+
+![The side panel on the right showing "fire-danger  Connected", after a first greeting](images/02-fire-danger-connected.png)
 
 Then ask:
 
@@ -715,6 +723,8 @@ You can also tell the chatbot what you know, and let it write the document:
    paste the line at the end, check it, and save.
 4. Read the document it wrote, and check each sentence against your source.
 
+![OpenCode asking before it writes a document: "Permission required → Edit knowledge/40-...md", the text it would write, and the choices Allow once / Always allow / Reject](images/06-permission-ask.png)
+
 The skill never invents a source: without one, it writes `Source: TO BE COMPLETED` and tells you.
 If the chatbot tries to change `knowledge/index.md` anyway, OpenCode refuses it without asking
 you: this is the rule doing its job.
@@ -833,6 +843,8 @@ reads the file at each call, without a restart. If the chatbot says that `fire-d
 malformed, a quote or a comma is missing: look for the red underline in VS Code, fix it and save. **Never make up a level**: write only what the
 official source says, on the day. If the season is over, write it in `"level"`.
 
+![The chatbot answering the fire-danger question: it calls the tool `fire-danger_fire_danger` and gives the level and its source (the level shown here is a sample, not a real bulletin)](images/05-tool-answer.png)
+
 ### Other MCP servers
 
 Many MCP servers exist: for a calendar, a database, a website. Each one is a program that runs with
@@ -888,6 +900,10 @@ All checks passed: chatbot/ (the current folder) is safe to start.
 Next: chatbot
 ```
 
+When you type `chatbot` (without `check`), the checks pass and it starts OpenCode:
+
+![The terminal after `chatbot`: "All checks passed. Starting OpenCode in chatbot/", the line to wait for "fire-danger Connected", and "Starting background server…"](images/08-start-banner.png)
+
 **What it checks.** Each check closes a way around the rules that we found while testing OpenCode
 2.1.4:
 
@@ -920,6 +936,8 @@ Checking my-topic/ (the current folder):
 This chatbot is not safe to start. Fix it, or ask the person who sent it.
 Next: fix it, then type: chatbot check
 ```
+
+![The terminal after `chatbot check` on an unsafe folder: three problems listed, then "This chatbot is not safe to start", and OpenCode does not start](images/07-check-refuses.png)
 
 Nothing was started and nothing was changed. Fix each line, then type `chatbot check` again, until
 it says **All checks passed**. If you did not make the folder yourself, do not try to fix it: ask
