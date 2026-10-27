@@ -1591,4 +1591,4 @@ and the command `chatbot` under [EUPL-1.2](LICENSES/EUPL-1.2.txt); details in `R
 MCP server and the skill `source-note` come from the
 [workshop kit](https://github.com/Youth-AI-Lab/yal-workshop-kit). OpenCode belongs to its authors.
 Tested with OpenCode 2.1.4 and the Codespace image `yal-workshop-devcontainer:2026.10.26`, in
-October 2026.
+October 2026. The guide now uses `2026.10.27`: the same tools and versions, built for Intel/AMD and ARM computers.
