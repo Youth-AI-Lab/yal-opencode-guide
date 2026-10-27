@@ -1,0 +1,104 @@
+// The configuration of your chatbot in OpenCode. OpenCode reads it when you start it in this
+// folder (chatbot/). Lines that start with // are comments: OpenCode ignores them.
+// There is no key and no model here. You connect your key or your subscription with /connect,
+// and OpenCode keeps it in your home folder, outside this folder. You choose the model with
+// /models. So you can share this folder without sharing your key.
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // The assistant that answers when you start OpenCode here: your chatbot, described below.
+  "default_agent": "chatbot",
+
+  // Sent at the start of each conversation, after AGENTS.md (your instructions, always sent):
+  // the list of your documents, so that the chatbot knows what it can open.
+  "instructions": ["knowledge/index.md"],
+
+  "agents": {
+    "chatbot": {
+      "mode": "primary",
+      "description": "The chatbot of this folder: AGENTS.md, knowledge/, skills and tools",
+      // At most 15 steps (a search, a reading, a tool...) for one question, then it must answer.
+      "steps": 15
+    },
+    // OpenCode's own assistants are made to write code: not used here.
+    "build": { "disabled": true },
+    "plan": { "disabled": true },
+    "general": { "disabled": true },
+    "explore": { "disabled": true },
+    // The small assistant that gives each conversation a title: one request less per conversation.
+    "title": { "disabled": true }
+  },
+
+  // What the chatbot may do. For each action, the LAST rule that matches wins:
+  // "allow" = without asking, "ask" = OpenCode asks you first, "deny" = never (and a tool that is
+  // always denied is not even shown to the model).
+  "permissions": [
+    // 1. Anything not listed below: ask you first.
+    { "action": "*", "resource": "*", "effect": "ask" },
+
+    // 2. Search and read the files of this folder, and use its skills: without asking.
+    { "action": "read", "resource": "*", "effect": "allow" },
+    { "action": "glob", "resource": "*", "effect": "allow" },
+    { "action": "grep", "resource": "*", "effect": "allow" },
+    { "action": "skill", "resource": "*", "effect": "allow" },
+
+    // 3. Create or change a file: never, except the documents of knowledge/, and then it asks you
+    // first (the skill source-note does it). Everything else (its instructions, this file, its
+    // skills, its tool, .ignore) you change yourself, in the editor.
+    { "action": "edit", "resource": "*", "effect": "deny" },
+    { "action": "edit", "resource": "knowledge/*", "effect": "ask" },
+
+    // 4. ...but never, even in knowledge/, a file that OpenCode would load as instructions
+    // (AGENTS.md, CLAUDE.md) or as configuration (opencode.json, opencode.jsonc).
+    { "action": "edit", "resource": "*AGENTS.md", "effect": "deny" },
+    { "action": "edit", "resource": "*CLAUDE.md", "effect": "deny" },
+    { "action": "edit", "resource": "*opencode.json*", "effect": "deny" },
+
+    // 5. Never the files of the guide around this folder: its README is not a document of the
+    // chatbot. (A search in the folder above skips the README too: see ../.ignore.)
+    { "action": "read", "resource": "../*", "effect": "deny" },
+    { "action": "edit", "resource": "../*", "effect": "deny" },
+
+    // 6. Never a command in the terminal. A command could print your key, or change any file.
+    // Keep "deny": even an "allow" rule for one command lets more through than it seems.
+    { "action": "shell", "resource": "*", "effect": "deny" },
+
+    // 7. Never a file outside this repository (your home folder, where your key is kept).
+    // OpenCode's own default is to allow it.
+    { "action": "external_directory", "resource": "*", "effect": "deny" },
+
+    // 8. Never read files that usually hold a secret. This only stops "read", not a search:
+    // never put a secret in this folder (see chatbot/.ignore and the guide, part 7).
+    { "action": "read", "resource": "*workshop-key*", "effect": "deny" },
+    { "action": "read", "resource": "*.key", "effect": "deny" },
+    { "action": "read", "resource": "*.env", "effect": "deny" },
+    { "action": "read", "resource": "*.env.*", "effect": "deny" },
+    { "action": "read", "resource": "*opencode.db*", "effect": "deny" },
+
+    // 9. The web, other assistants, questions with buttons, JavaScript, OpenCode's own skills:
+    // not for this chatbot.
+    { "action": "webfetch", "resource": "*", "effect": "deny" },
+    { "action": "websearch", "resource": "*", "effect": "deny" },
+    { "action": "subagent", "resource": "*", "effect": "deny" },
+    { "action": "question", "resource": "*", "effect": "deny" },
+    { "action": "execute", "resource": "*", "effect": "deny" },
+    { "action": "skill", "resource": "opencode", "effect": "deny" },
+    { "action": "skill", "resource": "report", "effect": "deny" },
+
+    // 10. The tools of the MCP server below: without asking (they only read today's level).
+    { "action": "fire-danger_*", "resource": "*", "effect": "allow" }
+  ],
+
+  // Tools from an MCP server: here a small program of this folder (mcp/) that gives today's
+  // fire danger level. OpenCode starts it itself, with the Python of the Codespace.
+  "mcp": {
+    "servers": {
+      "fire-danger": {
+        "type": "local",
+        "command": ["/opt/workshop/venv/bin/python", "mcp/fire_danger_server.py"],
+        // The tools are given to the model directly (not through OpenCode's "Code Mode").
+        "codemode": false
+      }
+    }
+  }
+}

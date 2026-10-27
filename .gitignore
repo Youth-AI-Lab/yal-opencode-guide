@@ -1,0 +1,9 @@
+# Your key or your subscription is connected with /connect: OpenCode keeps it in your home folder
+# (~/.local/share/opencode), with your conversations, never in this folder. Nothing secret is
+# written here.
+__pycache__/
+# Files that usually hold a secret: never in this repository.
+.env
+.env.*
+*.env
+*.key

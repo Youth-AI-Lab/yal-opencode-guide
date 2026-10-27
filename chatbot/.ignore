@@ -1,0 +1,9 @@
+# Files that OpenCode's search (grep) skips when it searches a folder: files that usually hold a
+# secret. This is a second lock, not a safe: a search that names a file, or filters on a file name
+# (for example *.env), still reads it. .ignore only hides these files from a plain search.
+# Never put a key or a password in this folder.
+.env
+.env.*
+*.env
+*.key
+*workshop-key*

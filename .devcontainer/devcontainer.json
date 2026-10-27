@@ -1,0 +1,16 @@
+{
+  "name": "Youth AI Lab — a chatbot with OpenCode",
+  // The same image as the workshop kit. It has OpenCode 2.1.4, with no automatic update, no model
+  // catalogue downloaded at each start and no free "Zen" models, and the Python of the MCP server
+  // (/opt/workshop/venv). It also has the workshop commands (workshop-login...): this guide does
+  // not use them.
+  // A pinned tag, never `latest`: each version of the guide is tested with one image.
+  "image": "ghcr.io/youth-ai-lab/yal-workshop-devcontainer:2026.10.26",
+  "remoteUser": "vscode",
+  "hostRequirements": { "cpus": 2 },
+  // OpenCode's background service listens on this port, for OpenCode itself: no notice offering
+  // to open it in the browser.
+  "portsAttributes": {
+    "49374": { "label": "OpenCode (background service)", "onAutoForward": "ignore" }
+  }
+}

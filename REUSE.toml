@@ -1,0 +1,19 @@
+version = 1
+SPDX-PackageName = "yal-opencode-guide"
+SPDX-PackageSupplier = "Youth AI Lab (Erasmus+)"
+SPDX-PackageDownloadLocation = "https://github.com/Youth-AI-Lab/yal-opencode-guide"
+
+# Texts: the guide, the chatbot's instructions, its documents (summaries 30 to 32 of the workshop kit)
+# and its skills (source-note is adapted from the kit): CC BY-SA 4.0.
+[[annotations]]
+path = ["README.md", "chatbot/AGENTS.md", "chatbot/knowledge/**", "chatbot/.opencode/skills/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Youth AI Lab partners"
+SPDX-License-Identifier = "CC-BY-SA-4.0"
+
+# Configuration files and the MCP server (from the workshop kit): EUPL-1.2.
+[[annotations]]
+path = [".devcontainer/**", ".vscode/**", ".gitignore", ".ignore", "REUSE.toml", "chatbot/.ignore", "chatbot/opencode.jsonc", "chatbot/mcp/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Youth AI Lab partners"
+SPDX-License-Identifier = "EUPL-1.2"

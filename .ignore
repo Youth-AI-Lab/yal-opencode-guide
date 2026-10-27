@@ -1,0 +1,7 @@
+# Files that OpenCode's search (grep) skips when it searches the folder of the guide: the guide
+# and its settings are not documents of the chatbot (the chatbot lives in chatbot/).
+/README.md
+/LICENSES/
+/REUSE.toml
+/.devcontainer/
+/.vscode/
