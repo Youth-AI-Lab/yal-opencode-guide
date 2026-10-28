@@ -530,8 +530,10 @@ CHATBOT_KEYS = {"mode", "description", "steps"}
 READ_ONLY_ACTIONS = {"read", "glob", "grep", "skill", "edit"}
 DENY_EVERYWHERE = ["shell", "external_directory", "webfetch", "websearch", "subagent", "execute",
                    "question", "todowrite"]
+# (knowledge/index.md is a document like the others since 2026-10-28: the chatbot may add its line,
+# after asking. Each file listed in "instructions" must be refused instead: see check_config.)
 EDIT_DENY_FILES = ["opencode.jsonc", "opencode.json", "AGENTS.md", "CLAUDE.md", ".ignore",
-                   "knowledge/index.md", "knowledge/AGENTS.md", "knowledge/CLAUDE.md",
+                   "knowledge/AGENTS.md", "knowledge/CLAUDE.md",
                    "knowledge/opencode.json", "knowledge/opencode.jsonc"]
 EDIT_DENY_SCOPES = [".opencode/*", "mcp/*", "../*"]
 READ_DENY_SCOPES = ["*workshop-key*", "*.key", "*.env", "*.env.*", "*opencode.db*", "../*"]
@@ -653,6 +655,15 @@ def check_config(folder, cfg, problems):
                         '{ "action": ..., "resource": ..., "effect": "allow", "ask" or "deny" }.')
         return servers, instruction_files
     check_rules(rules, servers, problems)
+    # A file sent with the instructions at the start of each conversation is part of them: if the
+    # chatbot could change it, one "Allow once" would write the instructions of the next sessions.
+    for full in instruction_files:
+        r = os.path.relpath(full, folder).replace(os.sep, "/")
+        if effect_of(rules, "edit", r) != "deny":
+            problems.append(f'"{r}" is sent with the instructions (see "instructions"), but the rules let '
+                            "the chatbot change it: it could write its own instructions. Add the rule "
+                            f'{{ "action": "edit", "resource": "{r}", "effect": "deny" }}, or remove it '
+                            'from "instructions".')
     return servers, instruction_files
 
 

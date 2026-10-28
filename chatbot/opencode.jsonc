@@ -7,11 +7,10 @@
   "$schema": "https://opencode.ai/config.json",
 
   // The assistant that answers when you start OpenCode here: your chatbot, described below.
+  // Only AGENTS.md (your instructions) is sent at the start of each conversation. The list of
+  // your documents, knowledge/index.md, is a document like the others: AGENTS.md tells the
+  // chatbot to read it first.
   "default_agent": "chatbot",
-
-  // Sent at the start of each conversation, after AGENTS.md (your instructions, always sent):
-  // the list of your documents, so that the chatbot knows what it can open.
-  "instructions": ["knowledge/index.md"],
 
   "agents": {
     "chatbot": {
@@ -42,14 +41,12 @@
     { "action": "grep", "resource": "*", "effect": "allow" },
     { "action": "skill", "resource": "*", "effect": "allow" },
 
-    // 3. Create or change a file: never, except the documents of knowledge/, and then it asks you
-    // first (the skill source-note writes a document this way). Everything else (its instructions,
-    // this file, its skills, its tool, .ignore) you change yourself, in the editor.
+    // 3. Create or change a file: never, except the documents of knowledge/ and their list
+    // index.md, and then it asks you first (the skill source-note writes a document, then its line
+    // in index.md, this way). Everything else (its instructions, this file, its skills, its tool,
+    // .ignore) you change yourself, in the editor.
     { "action": "edit", "resource": "*", "effect": "deny" },
     { "action": "edit", "resource": "knowledge/*", "effect": "ask" },
-    // ...but never the list knowledge/index.md: it is sent with your instructions (see
-    // "instructions" above), so it is part of them. You add its lines yourself.
-    { "action": "edit", "resource": "knowledge/index.md", "effect": "deny" },
 
     // 4. ...but never, even in knowledge/, a file that OpenCode would load as instructions
     // (AGENTS.md, CLAUDE.md) or as configuration (opencode.json, opencode.jsonc).

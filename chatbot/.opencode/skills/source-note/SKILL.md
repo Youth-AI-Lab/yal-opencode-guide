@@ -27,8 +27,9 @@ chatbot can use it in later conversations.
    <the facts, one per sentence>
    ```
 
-5. Do not change `knowledge/index.md`: the chatbot is not allowed to. Give the user the line to
-   add at the end of it, in the same form as the others, and tell them to add it in the editor.
+5. Add one line for the new document at the end of `knowledge/index.md`, in the same form as the
+   others, ending with "Not yet checked by a person.". Change nothing else in that file. OpenCode
+   asks the user before this change too.
 6. Show the document to the user and ask them to check it.
 7. If the document contradicts another document of `knowledge/`, say so explicitly and offer to
    update or delete the old one. Do not decide alone.
