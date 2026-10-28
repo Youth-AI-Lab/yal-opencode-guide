@@ -1623,6 +1623,7 @@ MCP server and the skill `source-note` come from the
 [workshop kit](https://github.com/Youth-AI-Lab/yal-workshop-kit). OpenCode belongs to its authors.
 Tested with OpenCode 2.1.4 in October 2026. Parts 1 to 9 were followed in a Codespace with the
 image `yal-workshop-devcontainer:2026.10.27`, an Anthropic key and Claude Sonnet 5.5, on 28 October
-2026. The Gemini key, Copilot and ChatGPT were tested on a computer (in the Codespace, the sign-ins
+2026; the guide now uses `2026.10.28`, the same tools with zsh in the terminal and its own welcome
+message. The Gemini key, Copilot and ChatGPT were tested on a computer (in the Codespace, the sign-ins
 to Copilot and ChatGPT, and one answer through each), and OpenRouter with test keys only (see each
 way).
