@@ -427,7 +427,7 @@ your own computer, while OpenCode waits for it in the Codespace. This worked in 
    you were too slow: start again at step 1.
 
 Then start the chatbot with `chatbot`, and go on with [step 4](#step-4---choose-the-model): choose a
-model of OpenAI with `/models` (in the Codespace, we tested the sign-in, not yet a question).
+model of OpenAI with `/models` (in our test, GPT-6.1 Sol answered in about 5 seconds).
 
 This is a **personal** subscription: for your own tests only, and your login is for you only.
 
@@ -1625,5 +1625,5 @@ MCP server and the skill `source-note` come from the
 Tested with OpenCode 2.1.4 in October 2026. Parts 1 to 9 were followed in a Codespace with the
 image `yal-workshop-devcontainer:2026.10.27`, an Anthropic key and Claude Sonnet 5.5, on 28 October
 2026. The Gemini key, Copilot and ChatGPT were tested on a computer (in the Codespace, the sign-ins
-to Copilot and ChatGPT, and one answer through Copilot), and OpenRouter with test keys only (see
-each way).
+to Copilot and ChatGPT, and one answer through each), and OpenRouter with test keys only (see each
+way).
