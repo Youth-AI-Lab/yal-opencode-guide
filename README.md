@@ -392,8 +392,8 @@ This is a **personal** subscription: for your own tests only, and your login is 
 
 ### Way 5 - A ChatGPT Plus or Pro subscription
 
-OpenCode can use a ChatGPT Plus or Pro plan instead of an OpenAI API key: you sign in from OpenCode
-in [part 1](#part-1---set-up). Its use counts against your plan, so OpenCode shows no cost
+OpenCode can use a ChatGPT Plus or Pro plan instead of an OpenAI API key: in a Codespace, you sign
+in once, from the terminal (below). Its use counts against your plan, so OpenCode shows no cost
 ([OpenCode's documentation](https://opencode.ai/v2/docs/providers/)). OpenAI lists OpenCode among
 the apps that can use a ChatGPT plan
 ([Sign in with ChatGPT](https://learn.chatgpt.com/docs/sign-in-with-chatgpt)). In our tests, these
@@ -403,11 +403,30 @@ models answered well but more slowly (12 to 19 seconds).
 its models unless you turn off **Improve the model for everyone** in **Settings → Data controls**.
 Turn it off before you connect OpenCode.
 
-> [!WARNING]
-> **Not yet tested in a Codespace.** We tested this sign-in on a computer, not in a Codespace. At
-> the end of the sign-in, ChatGPT sends your browser back to an address of OpenCode that starts
-> with `http://127.0.0.1:`. Your browser looks for that address on your own computer, while
-> OpenCode waits for it in the Codespace, so the last page may not load. TO BE COMPLETED after a test in a real Codespace.
+**In a Codespace, sign in from the terminal, not from OpenCode's window.** Inside OpenCode, the
+sign-in can neither open your browser nor copy its address. At the end, ChatGPT also sends your
+browser back to an address that starts with `http://127.0.0.1:`: your browser looks for it on
+your own computer, while OpenCode waits for it in the Codespace. This worked in our test:
+
+1. Quit OpenCode (`Ctrl+C`). In the terminal, in the folder `chatbot/` of this guide (a new
+   terminal opens there), type `opencode auth login openai` and choose **Sign in with ChatGPT**.
+2. Hold `Ctrl` and click the address that it prints (`Cmd`+click on a Mac): it opens in your
+   browser. Sign in to ChatGPT and allow the access.
+3. The last page does not load. **At once**, copy the whole address from the address bar of your
+   browser, and open a second terminal (the **+** of the terminal panel). Type the line below,
+   and paste the address between the two quotes with `Ctrl+Shift+V` (`Cmd+V` on a Mac); the
+   quotes keep the address in one piece. Press Enter. Paste this address nowhere else: it holds a
+   sign-in code.
+
+   ```bash
+   curl "PASTE-THE-ADDRESS-HERE"
+   ```
+
+4. The first terminal shows "Connected to OpenAI" and "Done". If it says "Authorization expired",
+   you were too slow: start again at step 1.
+
+Then start the chatbot with `chatbot`, and go on with [step 4](#step-4---choose-the-model): choose a
+model of OpenAI with `/models` (in the Codespace, we tested the sign-in, not yet a question).
 
 This is a **personal** subscription: for your own tests only, and your login is for you only.
 
@@ -488,9 +507,10 @@ then follow what it asks:
 | **Gemini key** | **Google**, then the API key method | paste your key and press Enter |
 | **OpenRouter key** | **OpenRouter**, then the API key method | paste your key and press Enter |
 | **GitHub Copilot** | **GitHub Copilot** → **Login with GitHub Copilot** → **GitHub.com** | OpenCode shows a short code. Open <https://github.com/login/device> in your browser, type the code there and allow the access (copying it out of OpenCode may not reach your browser) |
-| **ChatGPT Plus or Pro** | **OpenAI** → **Sign in with ChatGPT** | sign in to ChatGPT in the page that opens, and allow the access. Not yet tested in a Codespace: the last page may not load (see [way 5](#way-5---a-chatgpt-plus-or-pro-subscription)) |
+| **ChatGPT Plus or Pro** | in a Codespace, not here: quit OpenCode and follow [way 5](#way-5---a-chatgpt-plus-or-pro-subscription) | sign in from the terminal with `opencode auth login openai` |
 
-Once connected, OpenCode shows the models of this provider: go to step 4.
+Once connected, OpenCode shows the models of this provider: go to step 4. For ChatGPT, start the
+chatbot again with `chatbot` after way 5, then go to step 4.
 
 **Where your key goes.** OpenCode keeps it in its own database in your home folder
 (`~/.local/share/opencode/`), with your conversations: never in the folder of the chatbot, so you
@@ -1390,6 +1410,7 @@ In the terminal of the Codespace:
 | `opencode models` | the models of OpenCode's catalogue, with their full names (with Copilot, only those of `/models` work) |
 | `opencode auth list` | the accounts you connected |
 | `opencode auth logout` | removes a connected account |
+| `opencode auth login openai` | signs in to ChatGPT from the terminal ([way 5](#way-5---a-chatgpt-plus-or-pro-subscription)); it starts no chatbot |
 | `opencode api get /api/permission/saved` | the rules saved by **Always allow** |
 | `opencode api delete /api/permission/saved/ID` | deletes one of these rules, by its id |
 | `clear` | empties the terminal, for example before you project it |
@@ -1485,7 +1506,9 @@ unrestricted (restrict it to the Gemini API, [way 2](#way-2---a-google-gemini-ap
 whose daily limit is reached; an OpenRouter key without credits or over its credit limit. For
 Copilot, your account needs a paid plan (Pro, Pro+, Business or Enterprise): Copilot Free was not
 tested ([way 4](#way-4---a-github-copilot-subscription)). If your organisation gives you a seat,
-ask it to turn on Copilot Chat, then connect again.
+ask it to turn on Copilot Chat, then connect again. For ChatGPT, "Authorization expired" means
+that the `curl` of [way 5](#way-5---a-chatgpt-plus-or-pro-subscription) came too late: start again
+at its step 1, and copy the last address at once; your plan must be Plus or Pro.
 
 ### The chatbot does not use the fire-danger tool
 
@@ -1600,5 +1623,5 @@ MCP server and the skill `source-note` come from the
 [workshop kit](https://github.com/Youth-AI-Lab/yal-workshop-kit). OpenCode belongs to its authors.
 Tested with OpenCode 2.1.4 in October 2026. Parts 1 to 9 were followed in a Codespace with the
 image `yal-workshop-devcontainer:2026.10.27`, an Anthropic key and Claude Sonnet 5.5, on 28 October
-2026. The Gemini key, Copilot and ChatGPT were tested on a computer, not in a Codespace, and
-OpenRouter with test keys only (see each way).
+2026. The Gemini key, Copilot and ChatGPT were tested on a computer (in the Codespace, only the
+sign-in to ChatGPT), and OpenRouter with test keys only (see each way).
