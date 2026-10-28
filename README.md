@@ -371,7 +371,8 @@ them.
 If your GitHub account has a paid Copilot plan, OpenCode can use the models of your plan: GitHub
 [officially supports](https://github.blog/changelog/2026-01-16-github-copilot-now-supports-opencode/)
 the Pro, Pro+, Business and Enterprise plans in OpenCode. Copilot Free is not in that list: TO BE
-COMPLETED (not tested). You sign in from OpenCode in [part 1](#part-1---set-up).
+COMPLETED (not tested). You sign in from OpenCode in [part 1](#part-1---set-up): in our test in a
+Codespace, this took a link that opened and a code of 8 characters to type.
 
 **Turn off training first.** With a personal plan (Free, Pro, Pro+), GitHub may use what you send to
 train its models unless you opt out in your GitHub settings
@@ -506,7 +507,7 @@ then follow what it asks:
 | **Anthropic key** | **Anthropic**, then the API key method | paste your key with `Ctrl+Shift+V` (`Cmd+V` on a Mac) and press Enter |
 | **Gemini key** | **Google**, then the API key method | paste your key and press Enter |
 | **OpenRouter key** | **OpenRouter**, then the API key method | paste your key and press Enter |
-| **GitHub Copilot** | **GitHub Copilot** → **Login with GitHub Copilot** → **GitHub.com** | OpenCode shows a short code. Open <https://github.com/login/device> in your browser, type the code there and allow the access (copying it out of OpenCode may not reach your browser) |
+| **GitHub Copilot** | **GitHub Copilot** → **Login with GitHub Copilot** → **GitHub.com** | OpenCode gives the page <https://github.com/login/device> (in our test in a Codespace, the link opened) and a code of 8 characters: type the code on that page, and allow the access (copying it out of OpenCode may not reach your browser) |
 | **ChatGPT Plus or Pro** | in a Codespace, not here: quit OpenCode and follow [way 5](#way-5---a-chatgpt-plus-or-pro-subscription) | sign in from the terminal with `opencode auth login openai` |
 
 Once connected, OpenCode shows the models of this provider: go to step 4. For ChatGPT, start the
@@ -1623,5 +1624,6 @@ MCP server and the skill `source-note` come from the
 [workshop kit](https://github.com/Youth-AI-Lab/yal-workshop-kit). OpenCode belongs to its authors.
 Tested with OpenCode 2.1.4 in October 2026. Parts 1 to 9 were followed in a Codespace with the
 image `yal-workshop-devcontainer:2026.10.27`, an Anthropic key and Claude Sonnet 5.5, on 28 October
-2026. The Gemini key, Copilot and ChatGPT were tested on a computer (in the Codespace, only the
-sign-in to ChatGPT), and OpenRouter with test keys only (see each way).
+2026. The Gemini key, Copilot and ChatGPT were tested on a computer (in the Codespace, the sign-ins
+to Copilot and ChatGPT, and one answer through Copilot), and OpenRouter with test keys only (see
+each way).
