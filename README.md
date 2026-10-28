@@ -446,9 +446,8 @@ subscription, choose a model, and ask a first question.
 2. At the bottom of the window is the **terminal**, where you type commands. Its prompt shows the
    folder `chatbot`: each new terminal opens in the folder of the chatbot.
 
-The terminal may greet you with "Welcome! First, save the API key of your pair: workshop-login".
-This message comes from the workshops, which use the same Codespace image: **ignore it here**.
-This guide connects your key inside OpenCode.
+Each new terminal greets you with "Welcome! Start the chatbot of this guide with: chatbot": step 2
+does it.
 
 > [!WARNING]
 > **The next times, do not use this link again**: it would create a new Codespace, without your
