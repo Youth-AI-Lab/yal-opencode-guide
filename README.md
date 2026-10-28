@@ -432,7 +432,8 @@ This guide connects your key inside OpenCode.
 
 > [!WARNING]
 > **The next times, do not use this link again**: it would create a new Codespace, without your
-> changes. Go to <https://github.com/codespaces> and click the **name** of your Codespace.
+> changes. Go to <https://github.com/codespaces> and click the **name** of your Codespace: it
+> reopens in about a minute.
 
 ### Step 2 - Start the chatbot
 
@@ -461,16 +462,16 @@ load the configuration of the chatbot: quit at once with `Ctrl+C`, and see
 
 After **Chatbot**, the line shows a model. Before you connect anything (step 3), it may be a GitHub
 Copilot model chosen by OpenCode, for example **Gemini 4 Argon · GitHub Copilot**. Do not ask
-anything yet: in our test, the first question got "Error: The requested model is not supported."
-Connect your key or subscription first.
+anything yet: in our test, this one answered "Error: The requested model is not supported."
+Connect your key or subscription first, so that you know who pays and on which terms.
 
 If the command prints a list of problems and "This chatbot is not safe to start. Fix it, or ask the
 person who sent it.", OpenCode does not start: each line says what is wrong.
 [Part 7](#when-chatbot-refuses-to-start) explains these messages. On a new Codespace of this guide,
 you should not see it.
 
-The grey example text in the message box, "Fix broken tests", is OpenCode's own, made for
-programmers: ignore it.
+The grey example text in the message box, such as "Fix broken tests" or "What is the tech stack of
+this project?", is OpenCode's own, made for programmers: ignore it.
 
 ![OpenCode just after it opens in the chatbot folder: the OpenCode logo, the message box, and the bottom line "Chatbot · Claude Sonnet 5.5 · Anthropic"](images/01-welcome.png)
 
@@ -505,14 +506,16 @@ can share the folder without sharing your key. You connect once per Codespace.
 Choose a model in this list (later, type `/models` and press Enter to open it again: it lists the
 models of all the providers you connected), for example **Claude Sonnet 5.5** (Anthropic or GitHub Copilot), **Gemini 3.8 Flash**
 (Google) or **GPT-6 Sol** (OpenAI). The bottom of the window now shows the chatbot, the model and
-its provider, for example **Chatbot · Claude Sonnet 5.5 · Anthropic**.
+its provider, for example **Chatbot · Claude Sonnet 5.5 · Anthropic**. OpenCode keeps this choice:
+at the next start, the bottom line shows the last model you used. Check it before each session.
 
 ![The list that `/models` opens, "Select model", with Claude Haiku, Sonnet and Opus highlighted](images/03-model-picker.png)
 
 In a Codespace, `/models` may list **GitHub Copilot** models even before you connect anything: they
-come from the Codespace's own access to GitHub. In our test, such a model did not answer ("Error:
-The requested model is not supported."). To use Copilot, connect your account with `/connect` as
-in step 3.
+come from the Codespace's own access to GitHub. In our test, with an account that has a Copilot
+plan, some answered (Grok 4.7) and others did not ("Error: The requested model is not
+supported.": Gemini 4 Argon, GPT-6 Sol). We did not check which plan or quota they use. To use
+Copilot, connect your account with `/connect` as in step 3.
 
 ### Step 5 - Wait for the tools, then ask
 
@@ -537,8 +540,9 @@ Then ask a real question:
 In which sector is La Rochelle, and from what time is the level of the day shown?
 ```
 
-**What you should see.** In the conversation, OpenCode shows what the chatbot did: a search in its
-documents, then the reading of a file of `knowledge/`. The answer says **sector 1 (1701)** and
+**What you should see.** Above the answer, OpenCode shows what the chatbot did: in our test, the
+line "→ Explored: 1 read, 1 search" (its readings and searches in its documents), and sometimes
+a call to its tool. The answer says **sector 1 (1701)** and
 **6 pm the day before**, and names the document `knowledge/30-charente-maritime-vigilance-levels.md`.
 In the side panel, the **context** counter shows how many tokens (pieces of words) were sent to the
 model, and how much it cost.
@@ -729,7 +733,8 @@ You can also tell the chatbot what you know, and let it write the document:
    (never **Always allow**: [part 7](#when-opencode-asks-you) says why).
 3. The chatbot then adds a line for the document at the end of `knowledge/index.md`, the list of
    documents. OpenCode **asks you** again: check that it adds only this line, then choose **Allow
-   once**.
+   once**. The window may show the first lines of the list first: the new line is at the end,
+   lower down in the window.
 4. Read the document it wrote, and check each sentence against your source.
 
 ![OpenCode asking before it writes a document: "Permission required → Edit knowledge/40-...md", the text it would write, and the choices Allow once / Always allow / Reject](images/06-permission-ask.png)
@@ -918,7 +923,7 @@ Next: chatbot
 
 When you type `chatbot` (without `check`), the checks pass and it starts OpenCode:
 
-![The terminal after `chatbot`: "All checks passed. Starting OpenCode in chatbot/", the line to wait for "fire-danger Connected", and "Starting background server…"](images/08-start-banner.png)
+![The terminal after `chatbot`: "All checks passed. Starting OpenCode in chatbot/", "Before your first question, type /mcps and wait until it shows "fire-danger Connected"", and "Starting background server…"](images/08-start-banner.png)
 
 **What it checks.** Each check closes a way around the rules that we found while testing OpenCode
 2.1.4:
@@ -1520,9 +1525,9 @@ from any folder: typed alone, it starts `chatbot/`, unless the folder you are in
 ### Copilot models appear although I did not connect Copilot
 
 In a Codespace, OpenCode sees the Codespace's own access to GitHub, and may even choose one of
-these models before you connect anything. In our test, it answered "Error: The requested model is
-not supported." Connect your key or subscription with `/connect` (part 1, step 3), then choose
-your model with `/models`; to use Copilot, connect your own account.
+these models before you connect anything. In our test, some answered and others gave "Error: The
+requested model is not supported." Connect your key or subscription with `/connect` (part 1, step
+3), then choose your model with `/models`; to use Copilot, connect your own account.
 
 ---
 
@@ -1593,5 +1598,7 @@ skills are under [CC BY-SA 4.0](LICENSES/CC-BY-SA-4.0.txt); configuration files,
 and the command `chatbot` under [EUPL-1.2](LICENSES/EUPL-1.2.txt); details in `REUSE.toml`. The documents 30 to 32, the
 MCP server and the skill `source-note` come from the
 [workshop kit](https://github.com/Youth-AI-Lab/yal-workshop-kit). OpenCode belongs to its authors.
-Tested with OpenCode 2.1.4 and the Codespace image `yal-workshop-devcontainer:2026.10.26`, in
-October 2026. The guide now uses `2026.10.27`: the same tools and versions, built for Intel/AMD and ARM computers.
+Tested with OpenCode 2.1.4 in October 2026. Parts 1 to 9 were followed in a Codespace with the
+image `yal-workshop-devcontainer:2026.10.27`, an Anthropic key and Claude Sonnet 5.5, on 28 October
+2026. The Gemini key, Copilot and ChatGPT were tested on a computer, not in a Codespace, and
+OpenRouter with test keys only (see each way).
