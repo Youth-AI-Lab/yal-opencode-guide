@@ -451,13 +451,18 @@ first checks the folder of the chatbot, then starts OpenCode in it.
 
 ```
 All checks passed. Starting OpenCode in chatbot/ (the current folder).
-Wait until the side panel shows "fire-danger Connected" before your first question (Ctrl+X then B shows the panel).
+Before your first question, type /mcps and wait until it shows "fire-danger Connected".
 ```
 
 Then OpenCode opens in the terminal. At the bottom are the message box and a line that starts with
 **Chatbot**: this is the assistant of this folder. If you see **Build** instead, OpenCode did not
 load the configuration of the chatbot: quit at once with `Ctrl+C`, and see
 [OpenCode is not the chatbot](#opencode-is-not-the-chatbot).
+
+After **Chatbot**, the line shows a model. Before you connect anything (step 3), it may be a GitHub
+Copilot model chosen by OpenCode, for example **Gemini 4 Argon · GitHub Copilot**. Do not ask
+anything yet: in our test, the first question got "Error: The requested model is not supported."
+Connect your key or subscription first.
 
 If the command prints a list of problems and "This chatbot is not safe to start. Fix it, or ask the
 person who sent it.", OpenCode does not start: each line says what is wrong.
@@ -504,15 +509,17 @@ its provider, for example **Chatbot · Claude Sonnet 5.5 · Anthropic**.
 ![The list that `/models` opens, "Select model", with Claude Haiku, Sonnet and Opus highlighted](images/03-model-picker.png)
 
 In a Codespace, `/models` may list **GitHub Copilot** models even before you connect anything: they
-come from the Codespace's own access to GitHub, and we have not checked that they answer. To use
-Copilot, connect your account with `/connect` as in step 3.
+come from the Codespace's own access to GitHub. In our test, such a model did not answer ("Error:
+The requested model is not supported."). To use Copilot, connect your account with `/connect` as
+in step 3.
 
 ### Step 5 - Wait for the tools, then ask
 
 OpenCode starts the chatbot's tool, the small program of the folder `mcp/`, a few seconds after it
-opens. Look at the side panel on the right: wait until it shows **fire-danger Connected**. A
-question sent before that goes without the tool. No side panel? Press `Ctrl+X` then `B` to show
-it, or type `/mcps` to see the state of the tool.
+opens. Type `/mcps` and press Enter: wait until the list shows **fire-danger Connected**, then
+press `Esc`. A question sent before that goes without the tool. Once a conversation has started,
+the side panel on the right shows the same line (in a small terminal, `Ctrl+X` then `B` shows or
+hides the panel).
 
 ![The side panel on the right showing "fire-danger  Connected", after a first greeting](images/02-fire-danger-connected.png)
 
@@ -803,7 +810,7 @@ one territory, with its scale, its official source and advice). It reads the fil
 `chatbot/mcp/fire-danger.json`, where a person writes the level of the day, copied from the
 official source. OpenCode starts the program itself, from the `"mcp"` part of `opencode.jsonc`.
 
-1. Check that the side panel shows **fire-danger Connected** (part 1, step 5).
+1. Check that `/mcps`, or the side panel, shows **fire-danger Connected** (part 1, step 5).
 2. Ask: "What is today's fire danger level in La Rochelle?"
 
 **What you should see.** The chatbot calls the tool, without asking you: the configuration allows
@@ -918,7 +925,7 @@ When you type `chatbot` (without `check`), the checks pass and it starts OpenCod
 | there is no symbolic link, in the folder or in the repository around it | the rules follow the path of a file as it is written, not where a link leads: a link named like a document could lead to your home folder |
 | there is no file named like a secret (`.env`, `*.key`, case ignored...), and no text that looks like a key | a search can read a file that the rules forbid to open (see [below](#what-the-rules-cannot-stop)) |
 | there is no hidden note (between `<!--` and `-->`, or a `[...]: #` reference line) in any file the model reads | the model reads it, but the preview of VS Code does not show it to you |
-| no variable such as `OPENCODE_CONFIG`, `ANTHROPIC_BASE_URL` or `PYTHONPATH` is set in the terminal | it would make OpenCode load other settings, send your key elsewhere, or run extra code |
+| no variable such as `OPENCODE_CONFIG`, `ANTHROPIC_BASE_URL` or `NODE_OPTIONS` is set in the terminal | it would make OpenCode load other settings, send your key elsewhere, or run extra code. The Python variables, such as `PYTHONSTARTUP` that VS Code adds to each new terminal, do not stop it: `chatbot` removes them before OpenCode starts |
 
 When something is unknown to it, `chatbot` refuses: it is made to fail safe.
 
@@ -1065,9 +1072,9 @@ it, also with paths that go up with `..`), writing `AGENTS.md` in `knowledge/`, 
 `knowledge/index.md`, writing a skill in `.opencode/skills/`, `.claude/skills/` or
 `.agents/skills/`, reading the key in the home folder, searching it, running a command, opening a
 web page. Each one was refused, even when every question was answered "yes". Writing a document in
-`knowledge/` still worked after a "yes". Then we tested the command `chatbot` on 73 versions of
-the folder, safe and unsafe: it gave the expected answer each time (66 refused, 7 accepted), plus
-26 export and import flows and a set of folders carrying a changed tool program.
+`knowledge/` still worked after a "yes". Then we tested the command `chatbot` on 75 versions of
+the folder, safe and unsafe: it gave the expected answer each time (66 refused, 9 accepted), plus
+27 export and import flows and a set of folders carrying a changed tool program.
 
 #### The rules to keep
 
@@ -1518,8 +1525,10 @@ from any folder: typed alone, it starts `chatbot/`, unless the folder you are in
 
 ### Copilot models appear although I did not connect Copilot
 
-In a Codespace, OpenCode sees the Codespace's own access to GitHub. Connect your own account with
-`/connect` if you want to use Copilot; otherwise, ignore these models.
+In a Codespace, OpenCode sees the Codespace's own access to GitHub, and may even choose one of
+these models before you connect anything. In our test, it answered "Error: The requested model is
+not supported." Connect your key or subscription with `/connect` (part 1, step 3), then choose
+your model with `/models`; to use Copilot, connect your own account.
 
 ---
 

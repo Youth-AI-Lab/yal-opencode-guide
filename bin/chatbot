@@ -32,9 +32,15 @@ NOT_SAFE = "This chatbot is not safe to start. Fix it, or ask the person who sen
 ENV_VARS = ["OPENCODE_CONFIG", "OPENCODE_CONFIG_CONTENT", "OPENCODE_CONFIG_DIR",
             "OPENCODE_CONFIG_PROJECT_DISABLE", "OPENCODE_DISABLE_PROJECT_CONFIG"]
 # Variables of the terminal that could send your key elsewhere or run extra code, whatever the
-# checked settings say. A fresh Codespace has none of them set.
+# checked settings say. A Codespace of this guide has none of them set (measured on 2026-10-28).
 INJECT_VARS = ["ANTHROPIC_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE", "GOOGLE_GEMINI_BASE_URL",
-               "OPENROUTER_BASE_URL", "NODE_OPTIONS", "PYTHONPATH", "PYTHONSTARTUP", "XDG_CONFIG_HOME"]
+               "OPENROUTER_BASE_URL", "NODE_OPTIONS", "XDG_CONFIG_HOME"]
+# Variables that make Python load extra code. VS Code's Python extension sets PYTHONSTARTUP in every
+# new terminal of the Codespace (measured on 2026-10-28), so refusing it would block everyone. They
+# change nothing for the MCP servers, which run as python -I (it ignores every PYTHON* variable),
+# nor for this command (python3 -I): they are removed before OpenCode starts, so that nothing it
+# starts gets them.
+STRIPPED_VARS = ["PYTHONPATH", "PYTHONSTARTUP", "PYTHONHOME", "PYTHONUSERBASE"]
 # Where OpenCode reads a global configuration or global instructions, outside the chatbot folder.
 GLOBAL_CONFIG = ["opencode.json", "opencode.jsonc", "AGENTS.md"]
 LOADED_ABOVE = ["opencode.json", "opencode.jsonc", ".opencode", ".claude", ".agents", "AGENTS.md", "CLAUDE.md"]
@@ -791,9 +797,11 @@ def cmd_check(args, start):
         return 127
     print(f"All checks passed. Starting OpenCode in {show(folder)}.")
     if servers:
-        print("Wait until the side panel shows " + " and ".join(f'"{s} Connected"' for s in servers)
-              + " before your first question (Ctrl+X then B shows the panel).")
+        print("Before your first question, type /mcps and wait until it shows "
+              + " and ".join(f'"{s} Connected"' for s in servers) + ".")
     sys.stdout.flush()
+    for v in STRIPPED_VARS:
+        os.environ.pop(v, None)
     os.chdir(folder)
     os.environ["PWD"] = folder
     os.execvp("opencode", ["opencode"])
