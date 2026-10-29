@@ -5,7 +5,7 @@
   // (/opt/workshop/venv). It also has the workshop commands (workshop-login...): this guide does
   // not use them, and greets you with its own message (WORKSHOP_WELCOME below).
   // A pinned tag, never `latest`: each version of the guide is tested with one image.
-  "image": "ghcr.io/youth-ai-lab/yal-workshop-devcontainer:2026.10.30",
+  "image": "ghcr.io/youth-ai-lab/yal-workshop-devcontainer:2026.10.31",
   "remoteUser": "vscode",
   // The command `chatbot` of this guide (bin/chatbot): it checks a chatbot folder, then starts
   // OpenCode in it. bin/ comes first; the image's own folders follow, unchanged.
