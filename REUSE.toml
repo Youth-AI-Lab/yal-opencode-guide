@@ -14,7 +14,7 @@ SPDX-License-Identifier = "CC-BY-SA-4.0"
 
 # Configuration files, the MCP server (from the workshop kit) and the command chatbot: EUPL-1.2.
 [[annotations]]
-path = [".devcontainer/**", ".vscode/**", ".gitignore", ".ignore", "REUSE.toml", "bin/**", "chatbot/.ignore", "chatbot/opencode.jsonc", "chatbot/mcp/**"]
+path = [".devcontainer/**", ".vscode/**", ".gitignore", ".gitattributes", ".ignore", "REUSE.toml", "bin/**", "chatbot/.ignore", "chatbot/opencode.jsonc", "chatbot/mcp/**"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Youth AI Lab partners"
 SPDX-License-Identifier = "EUPL-1.2"
