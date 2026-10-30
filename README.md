@@ -848,25 +848,34 @@ official source. OpenCode starts the program itself, from the `"mcp"` part of `o
 2. Ask: "What is today's fire danger level in La Rochelle?"
 
 **What you should see.** The chatbot calls the tool, without asking you: the configuration allows
-these tools, which only read a file. The level says "TO BE COMPLETED", so the chatbot says that
-nobody has filled in today's level, and gives the official source. It does not guess.
+these tools, which only read a file. The file is not filled in for today, so the tool gives no level
+(`"level": null`, with the reason), and the chatbot says that nobody has filled in today's level, and
+gives the official source. It does not guess.
 
 ### Fill in today's level
 
 1. Open the official source of your territory, given in `chatbot/mcp/fire-danger.json` (for La
    Rochelle, <https://www.risque-prevention-incendie.fr/17>).
-2. In `fire-danger.json`, write the date of today in `"date"`, in the form year-month-day, then,
-   for your territory, replace the text of `"level"` with the level of the day and the lines of
-   `"advice"` with the advice of the source, copied as they are. Keep the quotes: each line between
-   quotes, a comma between two lines, and none after the last. For La Rochelle, it looks like this
-   (with the real level and advice of the day instead of the words in capitals):
+2. In `fire-danger.json`, write the date of today in `"date"`, in the form year-month-day. Then,
+   for your territory, fill in:
+   - `"status"`: `"live"` if the source shows a level for today, `"season-over"` if it says the fire
+     season is over, `"no-level-shown"` if it shows no level today;
+   - `"source_says"`: the sentence of the source about today, copied as it is;
+   - only if the status is `"live"`: `"level"`, the level of the day, and the lines of `"advice"`,
+     the advice of the source, copied as they are.
+
+   Keep the quotes: each line between quotes, a comma between two lines, and none after the last.
+   For La Rochelle, it looks like this (with the real words of the day instead of the words in
+   capitals):
 
    ```json
    "date": "2026-10-27",
    ```
 
    ```json
-   "level": "TO BE COMPLETED",
+   "status": "live",
+   "level": "LEVEL OF THE DAY, COPIED FROM THE SOURCE",
+   "source_says": "SENTENCE OF THE SOURCE ABOUT TODAY",
    ```
 
    ```json
@@ -879,10 +888,13 @@ nobody has filled in today's level, and gives the official source. It does not g
    Save.
 3. Ask the question again.
 
-**What you should see.** The answer gives the level you wrote, with its date and source: the tool
-reads the file at each call, without a restart. If the chatbot says that `fire-danger.json` is
+**What you should see.** With `"live"`, the answer gives the level you wrote, with its date and
+source: the tool reads the file at each call, without a restart. With another status, the tool gives
+no level, and the chatbot says why, with the sentence of the source. The tool also gives no level when
+the date in the file is not today's: an old file never passes for today's level. If the chatbot says that `fire-danger.json` is
 malformed, a quote or a comma is missing: look for the red underline in VS Code, fix it and save. **Never make up a level**: write only what the
-official source says, on the day. If the season is over, write it in `"level"`.
+official source says, on the day. If the source shows no level, write the status and its sentence,
+never a level of your own.
 
 ![The chatbot answering the fire-danger question: it calls the tool `fire-danger_fire_danger` and gives the level and its source (the level shown here is a sample, not a real bulletin)](images/05-tool-answer.png)
 
