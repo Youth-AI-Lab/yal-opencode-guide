@@ -1357,7 +1357,7 @@ tool of this guide, never yours, and never a program they have not read.
    that looks like a key, and no hidden note in `AGENTS.md`, `knowledge/index.md` or a skill.
    Otherwise, it lists the problems and says "Nothing was exported."
 2. In the file list of VS Code, right-click `my-topic.zip` (at the top of the repository), choose
-   **Download**, and send the file.
+   **Download...**, and send the file.
 
 **The person who receives it** opens their own Codespace of this guide, then:
 
