@@ -4,5 +4,8 @@
   // No chat panel on the right and no Copilot features: the chatbot of this guide is in OpenCode,
   // in the terminal, and the chat of VS Code would be confusing.
   "workbench.secondarySideBar.defaultVisibility": "hidden",
-  "chat.disableAIFeatures": true
+  "chat.disableAIFeatures": true,
+  // No pop-up "install the recommended 'Python' extension" when you open chatbot/mcp/*.py:
+  // you read this code, you do not develop it.
+  "extensions.ignoreRecommendations": true
 }
