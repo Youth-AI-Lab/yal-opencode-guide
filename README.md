@@ -75,8 +75,11 @@ says so.
 
 ### Is this guide for you?
 
-**You took part in a Youth AI Lab workshop** and want to try the same pieces with another model, or
-on your own topic: this guide is for you. In the workshops, the command `workshop` writes
+**You took part in a workshop of [the series](https://github.com/Youth-AI-Lab/yal-workshop-kit#the-series)**
+and want to try the same pieces with another model, or on your own topic: this guide is for you.
+Best after workshop 4, when you have used all four pieces. Each part also goes with one workshop:
+part 3 with workshop 1 (the instructions), part 4 with workshops 2, 3 and 5 (the knowledge), part 5
+with workshop 3 (skills) and part 6 with workshop 4 (tools). In the workshops, the command `workshop` writes
 OpenCode's configuration for you (`workshop-login --engine opencode` chooses OpenCode instead of
 Claude Code). Here, you read and write that configuration yourself.
 
@@ -240,16 +243,26 @@ whatever the way (see [With young people](#with-young-people-what-this-guide-doe
 
 **A personal subscription is for you.** Copilot and ChatGPT plans are paid by you, for you, and
 your login is for one person. Never share them with a group, and never use them for a chatbot that
-young people use. For a workshop with adults, give each pair a key with a spending limit (way 1).
+young people use. For a workshop with adults, give each pair its own key, in a workspace with a
+spending limit (way 1).
 
 **A Claude Pro or Max subscription does not work here:** Anthropic's
 [terms](https://code.claude.com/docs/en/legal-and-compliance) forbid using these plans in other
 tools, and OpenCode removed this option. For Claude models, you need an Anthropic API key (way 1),
 or a Copilot plan (way 4).
 
-**A local model works too.** OpenCode can use a model that runs on your own computer, for example
-with Ollama, without sending anything to a company. A Codespace is too small for that. The coming
-Youth AI Lab guide on local AI explains how (TO BE COMPLETED: link to the local AI guide).
+**A local model: not tested with this guide.** OpenCode can also use a model that runs on the
+same computer as OpenCode, with [Ollama](https://opencode.ai/v2/docs/providers/#ollama) (it looks
+for it at `127.0.0.1:11434`), so that nothing goes to a company. OpenCode then runs on that
+computer, not in a Codespace: a Codespace is too small for Ollama, and `chatbot` refuses a
+`provider` block that sends your questions to another address. The
+[local AI guide](https://github.com/Youth-AI-Lab/yal-local-ai-guide) installs Ollama on a computer
+of your organisation, with Open WebUI, not OpenCode, and keeps Ollama closed to the network.
+With OpenCode and this chatbot: TO BE COMPLETED (not tested). With Hermes, another assistant
+that uses tools, two small local models failed on a laptop
+([Hermes guide](https://github.com/Youth-AI-Lab/yal-hermes-guide#a-model-on-your-own-computer)):
+`qwen2.5:7b` called its tools the wrong way, and `mistral:7b` invented a document. Before you rely
+on a local model, ask it the four questions of [part 8](#four-questions-to-check-it).
 
 You need only **one** of these five ways to follow the guide. With two, you can compare them in
 [part 8](#part-8---test-and-compare-models).
@@ -667,7 +680,7 @@ tools. What differs is how you write each piece, and what happens by default.
 your instructions come on top of it. With only a preprompt, the model sometimes behaves like one:
 asked "who are you?" with the Feurisson example of the kit as instructions, OpenCode's default
 assistant answered that it was Feurisson, "running inside the OpenCode coding agent", able to run
-commands. In a test of the workshop with instructions and no documents, the model invented four
+commands. In a test of the workshops with instructions and no documents, the model invented four
 colour levels instead of saying "I don't know". This is why the instructions of this guide say
 clearly what the chatbot answers from, and why the configuration removes the tools a chatbot does
 not need: a tool that is always refused is not even shown to the model.
@@ -1298,7 +1311,8 @@ or `cd ../my-topic` first.
 - [ ] Four questions of your own, as in [part 8](#four-questions-to-check-it): one answered by a
   document, one without an answer, one for the tool, one worried message; all answered well.
 - [ ] A model chosen for your use, and a fallback model.
-- [ ] A spending limit on the key, if it is a key.
+- [ ] A spending limit, if it is a key (for an Anthropic key: the spending limit of the workspace
+  of your key; see [Costs](#costs)).
 - [ ] Used for your own tests, or in a workshop with adults: never with young people without the
   decision of your organisation ([With young people](#with-young-people-what-this-guide-does-not-cover)).
 
@@ -1308,8 +1322,10 @@ This repository is a starting point for a workshop with youth workers or with ot
 pair opens its own Codespace from your copy of the repository (on GitHub, **Fork**), connects a
 key, and follows the parts that suit your goal.
 
-- **Who pays.** Give each pair a key with a low spending limit (way 1), as the workshops do, or ask
-  adults to bring their own. Never lend your personal subscription, and never project a key.
+- **Who pays.** Give each pair its own key, in a workspace with a low spending limit (way 1), as
+  the workshops do: one workspace for all the keys shares one limit, one workspace per pair gives
+  each pair its own. Or ask adults to bring their own key. Never lend your personal subscription,
+  and never project a key.
 - **Invented questions only.** Ask the participants to test with questions they make up, never
   with real cases from their work.
 - **Not with young people.** This setup is for adults. For a chatbot that young people use, see
@@ -1632,10 +1648,16 @@ These links were checked in October 2026.
 ### The Youth AI Lab project
 
 - [The workshop kit "Customising a chatbot"](https://github.com/Youth-AI-Lab/yal-workshop-kit):
-  the workshops behind this guide, with Claude Code or OpenCode.
+  the five workshops of the series behind this guide, with Claude Code or OpenCode.
 - [The Open WebUI guide](https://github.com/Youth-AI-Lab/yal-openwebui-guide): build chatbots and
   open them to your group during a session.
-- [The slides of the workshop](https://youth-ai-lab.github.io/yal-workshop/).
+- [The local AI guide](https://github.com/Youth-AI-Lab/yal-local-ai-guide): a chatbot that runs on
+  a computer of your organisation, so that the data does not leave it.
+- [The dev containers guide](https://github.com/Youth-AI-Lab/yal-devcontainer-guide): the
+  workshops and the guides on your own computer, without a Codespace.
+- [The Hermes guide](https://github.com/Youth-AI-Lab/yal-hermes-guide): an assistant that helps you
+  prepare your sessions. It is for you, never for use with young people.
+- [The slides of the series](https://youth-ai-lab.github.io/yal-workshop/).
 - [The deliverables of the project](https://github.com/Youth-AI-Lab/deliverables), in five
   languages, among them the activity *WikiYouthBot*.
 
@@ -1650,7 +1672,8 @@ MCP server and the skill `source-note` come from the
 [workshop kit](https://github.com/Youth-AI-Lab/yal-workshop-kit). OpenCode belongs to its authors.
 Tested with OpenCode 2.1.4 in October 2026. Parts 1 to 9 were followed in a Codespace with the
 image `yal-workshop-devcontainer:2026.10.27`, an Anthropic key and Claude Sonnet 5.5, on 28 October
-2026; the guide now uses `2026.10.28`, the same tools with zsh in the terminal and its own welcome
-message. The Gemini key, Copilot and ChatGPT were tested on a computer (in the Codespace, the sign-ins
-to Copilot and ChatGPT, and one answer through each), and OpenRouter with test keys only (see each
-way).
+2026, and the start of part 1 again with `2026.10.28` (zsh in the terminal and the welcome message
+of this guide). The guide now uses the image `2026.10.36` (see `.devcontainer/devcontainer.json`),
+with the same OpenCode 2.1.4: the parts were not followed again with it. The Gemini key, Copilot
+and ChatGPT were tested on a computer (in the Codespace, the sign-ins to Copilot and ChatGPT, and
+one answer through each), and OpenRouter with test keys only (see each way).

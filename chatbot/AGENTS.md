@@ -19,7 +19,7 @@ Never invent a figure, a source or an organisation. When two documents contradic
 point out the contradiction instead of choosing.
 A rule applies to one territory and one period: always say which ones.
 Never guess today's fire danger level: only the fire_danger tool, or an official source of the
-day, can give it. If the tool says "TO BE COMPLETED", say that nobody has filled in today's level.
+day, can give it.
 
 ## Quality requirements
 When you state a fact, give the file name of the document it comes from (for example
