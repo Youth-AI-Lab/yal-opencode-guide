@@ -3,9 +3,11 @@ SPDX-PackageName = "yal-opencode-guide"
 SPDX-PackageSupplier = "Youth AI Lab (Erasmus+)"
 SPDX-PackageDownloadLocation = "https://github.com/Youth-AI-Lab/yal-opencode-guide"
 
-# Texts and screenshots: the guide, its images (real captures of the OpenCode TUI 2.1.4), the
-# chatbot's instructions, its documents (summaries 30 to 32 of the workshop kit) and its skills
-# (source-note is adapted from the kit): CC BY-SA 4.0.
+# Texts and screenshots: the guide, its images (real captures of the OpenCode TUI 2.1.4 and of
+# VS Code for the web; console-key.png, the Claude Console form, comes from the Open WebUI guide of
+# the same partners), the chatbot's instructions, its documents (summaries 30 to 32 of the workshop
+# kit) and its skills (source-note is adapted from the kit): CC BY-SA 4.0. The screenshots show the
+# interfaces of OpenCode, VS Code and the Claude Console, which belong to their authors.
 [[annotations]]
 path = ["README.md", "images/**", "chatbot/AGENTS.md", "chatbot/knowledge/**", "chatbot/.opencode/skills/**"]
 precedence = "aggregate"

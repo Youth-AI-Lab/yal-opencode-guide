@@ -280,6 +280,12 @@ you. On <https://platform.claude.com>:
 4. Create a key: **Keys & access** → **API keys** → **Create key**. Give it a **Name**, an
    **Expires** date, and choose your workspace in **Scope**. Click **Create key**.
 
+![The form "Create API key" of the Claude Console: the boxes Name, Expires and Scope (Expires and Scope framed in red), the box Linked account (here a service account), and the button Create key (the key itself is not shown)](images/console-key.png)
+
+The form also has a box **Linked account**, which says who the key acts for: for a key of your own,
+choose yourself. An organisation can choose a *service account* instead, as in the picture: the key
+then keeps working if you leave the organisation.
+
 The key starts with `sk-ant-`. It is shown **only once**: copy it into your password manager right
 away. You need your own workspace, because the workspace **Default** cannot have a spending limit.
 In OpenCode, the provider is **Anthropic** and the model of the workshops is **Claude Sonnet 5.5**.
@@ -459,8 +465,12 @@ does it.
 You always start the chatbot with the command `chatbot`, never with `opencode` alone: `chatbot`
 first checks the folder of the chatbot, then starts OpenCode in it.
 
-1. Make the terminal bigger first: click the **Maximize Panel Size** arrow at the top right of the
-   terminal. OpenCode needs room: in a small terminal, its side panel covers the conversation.
+1. Make the terminal bigger first: click the **Maximize Panel** button (its icon is four corners)
+   at the top right of the terminal. OpenCode needs room: in a small terminal, its side panel covers
+   the conversation.
+
+   ![The top bar of the terminal: on the right, the button Maximize Panel (four corners) framed in red, just left of the X that hides the terminal](images/vscode-maximize-panel.png)
+
 2. In the terminal, type:
 
    ```bash
@@ -474,15 +484,16 @@ All checks passed. Starting OpenCode in chatbot/ (the current folder).
 Before your first question, type /mcps and wait until it shows "fire-danger Connected".
 ```
 
-Then OpenCode opens in the terminal. At the bottom are the message box and a line that starts with
-**Chatbot**: this is the assistant of this folder. If you see **Build** instead, OpenCode did not
+Then OpenCode opens in the terminal. In the middle, under the OpenCode logo, is the message box.
+Inside it, under the grey example text, a line starts with **Chatbot**: this is the assistant of
+this folder. If you see **Build** instead, OpenCode did not
 load the configuration of the chatbot: quit at once with `Ctrl+C`, and see
 [OpenCode is not the chatbot](#opencode-is-not-the-chatbot).
 
 After **Chatbot**, the line shows a model. Before you connect anything (step 3), it may be a GitHub
-Copilot model chosen by OpenCode, for example **Gemini 4 Argon · GitHub Copilot**. Do not ask
-anything yet: in our test, this one answered "Error: The requested model is not supported."
-Connect your key or subscription first, so that you know who pays and on which terms.
+Copilot model chosen by OpenCode, for example **Gemini 4 Argon**.
+Do not ask anything yet: in our test, this one answered "Error: The requested model is not
+supported." Connect your key or subscription first, so that you know who pays and on which terms.
 
 If the command prints a list of problems and "This chatbot is not safe to start. Fix it, or ask the
 person who sent it.", OpenCode does not start: each line says what is wrong.
@@ -492,7 +503,7 @@ you should not see it.
 The grey example text in the message box, such as "Fix broken tests" or "What is the tech stack of
 this project?", is OpenCode's own, made for programmers: ignore it.
 
-![OpenCode just after it opens in the chatbot folder: the OpenCode logo, the message box, and the bottom line "Chatbot · Claude Sonnet 5.5 · Anthropic"](images/01-welcome.png)
+![OpenCode just after it opens in the chatbot folder: in the middle, the OpenCode logo and, under it, the message box with the grey example text and the line "Chatbot · Claude Sonnet 5.5 Anthropic" (the provider in grey); under the box, ~/chatbot on the left and the hints "shift+tab agents" and "ctrl+p commands" on the right](images/01-welcome.png)
 
 ### Step 3 - Connect your key or subscription
 
@@ -503,11 +514,15 @@ then follow what it asks:
 
 | Your way | Choose | Then |
 |---|---|---|
-| **Anthropic key** | **Anthropic**, then the API key method | paste your key with `Ctrl+Shift+V` (`Cmd+V` on a Mac) and press Enter |
-| **Gemini key** | **Google**, then the API key method | paste your key and press Enter |
-| **OpenRouter key** | **OpenRouter**, then the API key method | paste your key and press Enter |
+| **Anthropic key** | **Anthropic** | OpenCode opens **Connect Anthropic** with an empty box, **API key**: paste your key with `Ctrl+Shift+V` (`Cmd+V` on a Mac) and press Enter |
+| **Gemini key** | **Google** | in **Connect Google**, paste your key in the box **API key** and press Enter |
+| **OpenRouter key** | **OpenRouter** (not in the first lines: type `OpenRouter` in **Search**) | in **Connect OpenRouter**, paste your key in the box **API key** and press Enter |
 | **GitHub Copilot** | **GitHub Copilot** → **Login with GitHub Copilot** → **GitHub.com** | OpenCode gives the page <https://github.com/login/device> (in our test in a Codespace, the link opened) and a code of 8 characters: type the code on that page, and allow the access (copying it out of OpenCode may not reach your browser) |
 | **ChatGPT Plus or Pro** | in a Codespace, not here: quit OpenCode and follow [way 5](#way-5---a-chatgpt-plus-or-pro-subscription) | sign in from the terminal with `opencode auth login openai` |
+
+For a key, the box looks like this before you paste (here for Anthropic):
+
+![The box that opens when you choose Anthropic: "Connect Anthropic", the empty box "API key" in grey, and the hint "submit enter"](images/04b-connect-api-key.png)
 
 Once connected, OpenCode shows the models of this provider: go to step 4. For ChatGPT, start the
 chatbot again with `chatbot` after way 5, then go to step 4.
@@ -525,11 +540,12 @@ can share the folder without sharing your key. You connect once per Codespace.
 
 Choose a model in this list (later, type `/models` and press Enter to open it again: it lists the
 models of all the providers you connected), for example **Claude Sonnet 5.5** (Anthropic or GitHub Copilot), **Gemini 3.8 Flash**
-(Google) or **GPT-6 Sol** (OpenAI). The bottom of the window now shows the chatbot, the model and
-its provider, for example **Chatbot · Claude Sonnet 5.5 · Anthropic**. OpenCode keeps this choice:
-at the next start, the bottom line shows the last model you used. Check it before each session.
+(Google) or **GPT-6 Sol** (OpenAI). The last line of the message box now shows the chatbot, the
+model and, in grey, its provider, for example **Chatbot · Claude Sonnet 5.5 Anthropic**. OpenCode
+keeps this choice: at the next start, this line shows the last model you used. Check it before
+each session.
 
-![The list that `/models` opens, "Select model", with Claude Haiku, Sonnet and Opus highlighted](images/03-model-picker.png)
+![The list that `/models` opens, "Select model", with the Claude models from Claude Haiku 5.5 to Claude Opus 4.5 (latest); only the current choice, Claude Sonnet 5.5, is highlighted, with a dot](images/03-model-picker.png)
 
 In a Codespace, `/models` may list **GitHub Copilot** models even before you connect anything: they
 come from the Codespace's own access to GitHub. In our test, with an account that has a Copilot
@@ -540,12 +556,14 @@ Copilot, connect your account with `/connect` as in step 3.
 ### Step 5 - Wait for the tools, then ask
 
 OpenCode starts the chatbot's tool, the small program of the folder `mcp/`, a few seconds after it
-opens. Type `/mcps` and press Enter: wait until the list shows **fire-danger Connected**, then
-press `Esc`. A question sent before that goes without the tool. Once a conversation has started,
-the side panel on the right shows the same line (in a small terminal, `Ctrl+X` then `B` shows or
-hides the panel).
+opens. Type `/mcps` and press Enter: the list **MCP servers** opens. Wait until the line
+**fire-danger** says **Connected**, then press `Esc`. A question sent before that goes without the
+tool.
 
-![The side panel on the right showing "fire-danger  Connected", after a first greeting](images/02-fire-danger-connected.png)
+![The list that `/mcps` opens, "MCP servers": the line "fire-danger", highlighted, says "Connected ✓"; under it, the hint "disconnect space"](images/02-fire-danger-connected.png)
+
+Once a conversation has started, the side panel on the right shows the same line (in a small
+terminal, `Ctrl+X` then `B` shows or hides the panel).
 
 Then ask:
 
@@ -757,7 +775,7 @@ You can also tell the chatbot what you know, and let it write the document:
    lower down in the window.
 4. Read the document it wrote, and check each sentence against your source.
 
-![OpenCode asking before it writes a document: "Permission required → Edit knowledge/40-...md", the text it would write, and the choices Allow once / Always allow / Reject](images/06-permission-ask.png)
+![OpenCode asking before it writes a document: the message of step 1, the lines Skill "source-note" and Write knowledge/40-our-club-campfire-rule.md, then "Permission required → Edit knowledge/40-our-club-campfire-rule.md", the text it would write, and the choices Allow once / Always allow / Reject](images/06-permission-ask.png)
 
 The skill never invents a source: without one, it writes `Source: TO BE COMPLETED` and tells you.
 Its line in `knowledge/index.md` ends with "Not yet checked by a person.". Once you have checked
@@ -953,9 +971,8 @@ All checks passed: chatbot/ (the current folder) is safe to start.
 Next: chatbot
 ```
 
-When you type `chatbot` (without `check`), the checks pass and it starts OpenCode:
-
-![The terminal after `chatbot`: "All checks passed. Starting OpenCode in chatbot/", "Before your first question, type /mcps and wait until it shows "fire-danger Connected"", and "Starting background server…"](images/08-start-banner.png)
+When you type `chatbot` (without `check`), the checks pass, it prints the two lines shown in
+[part 1, step 2](#step-2---start-the-chatbot), and it starts OpenCode.
 
 **What it checks.** Each check closes a way around the rules that we found while testing OpenCode
 2.1.4:
@@ -990,8 +1007,6 @@ This chatbot is not safe to start. Fix it, or ask the person who sent it.
 Next: fix it, then type: chatbot check
 ```
 
-![The terminal after `chatbot check` on an unsafe folder: three problems listed, then "This chatbot is not safe to start", and OpenCode does not start](images/07-check-refuses.png)
-
 Nothing was started and nothing was changed. Fix each line, then type `chatbot check` again, until
 it says **All checks passed**. If you did not make the folder yourself, do not try to fix it: ask
 the person who sent it. [Troubleshooting](#chatbot-says-this-chatbot-is-not-safe-to-start) lists
@@ -1001,7 +1016,7 @@ the usual messages and what to do.
 > **Never type `opencode` alone to start the chatbot.** Elsewhere than in the folder of a chatbot,
 > for example at the root of this repository, there is no `opencode.jsonc`, and OpenCode works
 > with its own defaults: it does everything without asking. And in a folder that `chatbot` would
-> refuse, OpenCode starts anyway. The bottom of OpenCode's window must say **Chatbot**.
+> refuse, OpenCode starts anyway. The last line of OpenCode's message box must start with **Chatbot**.
 
 ### When OpenCode asks you
 
@@ -1265,10 +1280,10 @@ catalogue: one million tokens for Claude Sonnet 5.5, which is why it stays low.
    ```
 
 **What you should see.** "All checks passed. Starting OpenCode in my-topic/ (the current folder).",
-then OpenCode, with **Chatbot** at the bottom. If `chatbot` refuses, read each line: after a change
-of `opencode.jsonc`, it names the line of a mistake, or the rule that went missing (see
-[Troubleshooting](#chatbot-says-this-chatbot-is-not-safe-to-start)). Then test your chatbot with
-your own questions (part 8).
+then OpenCode, with **Chatbot** in the last line of the message box. If `chatbot` refuses, read
+each line: after a change of `opencode.jsonc`, it names the line of a mistake, or the rule that
+went missing (see [Troubleshooting](#chatbot-says-this-chatbot-is-not-safe-to-start)). Then test
+your chatbot with your own questions (part 8).
 
 New terminals still open in `chatbot/`. From there, type `chatbot ../my-topic` to start your copy,
 or `cd ../my-topic` first.
@@ -1487,9 +1502,9 @@ create a new Codespace from the latest version of the guide.
 
 ### OpenCode is not the chatbot
 
-The bottom of OpenCode's window says **Build**, or the chatbot does not know its documents.
-OpenCode works with its own defaults, which allow everything. Press `Ctrl+C` at once. There are two
-causes:
+The last line of OpenCode's message box starts with **Build**, or the chatbot does not know its
+documents. OpenCode works with its own defaults, which allow everything. Press `Ctrl+C` at once.
+There are two causes:
 
 - **OpenCode was started with `opencode` instead of `chatbot`**, outside the folder of a chatbot.
   Type `chatbot` (or `chatbot ../my-topic` for your copy).
