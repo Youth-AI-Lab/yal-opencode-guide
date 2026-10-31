@@ -1,6 +1,6 @@
 # A chatbot of your own with OpenCode
 
-## Youth AI Lab — Erasmus+ project
+## Youth AI Lab - Erasmus+ project
 
 - **Partners:** L.A.B. (Aix-en-Provence), UAB (Barcelona), Perlatecnica (Naples), Digitale Wolven
   (Antwerp), CSC Vent des Îles (La Rochelle)
