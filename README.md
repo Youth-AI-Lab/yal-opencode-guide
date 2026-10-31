@@ -1647,7 +1647,7 @@ These links were checked in October 2026.
 
 ### The Youth AI Lab project
 
-- [The workshop kit "Customising a chatbot"](https://github.com/Youth-AI-Lab/yal-workshop-kit):
+- [The workshop kit "Build your own chatbot"](https://github.com/Youth-AI-Lab/yal-workshop-kit):
   the five workshops of the series behind this guide, with Claude Code or OpenCode.
 - [The Open WebUI guide](https://github.com/Youth-AI-Lab/yal-openwebui-guide): build chatbots and
   open them to your group during a session.
