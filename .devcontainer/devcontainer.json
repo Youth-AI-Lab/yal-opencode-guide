@@ -1,5 +1,5 @@
 {
-  "name": "Youth AI Lab — a chatbot with OpenCode",
+  "name": "Youth AI Lab: a chatbot with OpenCode",
   // The same image as the workshop kit. It has OpenCode 2.1.4, with no automatic update, no model
   // catalogue downloaded at each start and no free "Zen" models, and the Python of the MCP server
   // (/opt/workshop/venv). It also has the workshop commands (workshop-login...): this guide does
