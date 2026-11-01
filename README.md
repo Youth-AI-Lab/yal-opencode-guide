@@ -598,7 +598,7 @@ In which sector is La Rochelle, and from what time is the level of the day shown
 line "→ Explored: 1 read, 1 search" (its readings and searches in its documents), and sometimes
 a call to its tool. The answer says **sector 1 (1701)** and
 **6 pm the day before**, and names the document `knowledge/30-charente-maritime-vigilance-levels.md`.
-In the side panel, the **context** counter shows how many tokens (pieces of words) were sent to the
+In the side panel, the **context** counter shows how many [tokens](https://github.com/Youth-AI-Lab/yal-local-ai-guide/blob/main/how-an-llm-works.md#what-a-token-really-is) (pieces of words) were sent to the
 model, and how much it cost.
 
 To stop an answer, press `Esc`. To start a new conversation, type `/new`. To quit OpenCode, press
