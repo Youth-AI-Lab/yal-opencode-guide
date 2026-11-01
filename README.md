@@ -162,13 +162,14 @@ safety and data, and to tell users that they talk with an AI.
 
 ### When a young person tells you something worrying
 
-A young person may tell a chatbot, or tell you in front of it, that they are unwell, in danger, or
-that someone hurts them. A chatbot cannot handle this, and must not try:
+A young person may tell a chatbot, or tell you in front of it, that they or someone else are unwell,
+in danger, or being hurt. A chatbot cannot handle this, and must not try:
 
 - **The chatbot** must answer kindly, tell them to talk **now** to the youth worker or another adult
   they trust (a different adult if that one is the problem), and to call 112 if they are in danger
   right now, even if they promised to keep it secret. It says that it is a program and cannot warn
-  anyone, and it asks for no details. It gives no dose or method that could hurt. The
+  anyone, and it asks for no details. It gives no dose or method that could hurt. If a question shows
+  an immediate risk to someone's body, it says not to do it and to go to an adult now. The
   instructions of this guide say so (the last rules of `chatbot/AGENTS.md`, [part 3](#part-3---the-instructions-agentsmd)),
   and [part 8](#part-8---test-and-compare-models) tests it. Keep these rules in every chatbot you make.
 - **You** follow your organisation's safeguarding procedure: who to tell, and how fast. Know it
@@ -728,8 +729,8 @@ yourself, in the editor. It may only write the documents of `knowledge/` and add
 their list, `knowledge/index.md`, and each time OpenCode asks you first (part 4).
 
 **Keep the last rules of `Bans and constraints`** in every chatbot you make: what to do when someone
-says they are in danger, no dose or method that could hurt, and that the rules do not change when
-someone asks ([With young people](#when-a-young-person-tells-you-something-worrying)).
+says they or someone else are in danger, no dose or method that could hurt, what to do about an
+immediate risk to someone's body, and that the rules do not change when someone asks ([With young people](#when-a-young-person-tells-you-something-worrying)).
 
 **Going further: replace OpenCode's own prompt.** OpenCode can replace its coding-agent prompt with
 your own text, in the field `system` of the agent in `opencode.jsonc`
@@ -1283,8 +1284,9 @@ catalogue: one million tokens for Claude Sonnet 5.5, which is why it stays low.
 
 2. Change the pieces, in this order:
    - `AGENTS.md`: each section, for your topic and your group (part 3). Keep the last rules of
-     **Bans and constraints**: what to do when someone says they are in danger, no dose or method
-     that could hurt, and that the rules do not change;
+     **Bans and constraints**: what to do when someone says they or someone else are in danger, no
+     dose or method that could hurt, what to do about an immediate risk to someone's body, and
+     that the rules do not change;
    - `knowledge/`: delete the documents 30 to 32, add yours, and rewrite `index.md` (part 4);
    - `.opencode/skills/`: keep `source-note`, adapt `quiz` or write your own (part 5);
    - `mcp/`: if you do not need a tool of the day, delete the folder, the `"mcp"` part of
