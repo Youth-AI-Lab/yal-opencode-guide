@@ -206,9 +206,9 @@ the company that runs the model. Your conversations are also kept in the Codespa
   [data processing agreement](https://openrouter.ai/data-processing-agreement) applies. In your
   privacy settings, refuse the providers that train, or allow only zero-data-retention providers:
   OpenRouter then never routes to the others, including when it falls back to another provider.
-  OpenRouter does not guarantee what each provider does. Keeping questions in the EU needs a
-  Business or Enterprise plan and another address, which `chatbot` refuses. Never send health or other sensitive data. With young people,
-  zero-data-retention models hosted in Europe must be on (see [way 3](#way-3---an-openrouter-key)).
+  OpenRouter does not guarantee what each provider does. Keeping the handling of requests in the EU
+  needs a Business or Enterprise plan and another address, which `chatbot` refuses. Never send health or other sensitive data. With young people,
+  read the warning of [way 3](#way-3---an-openrouter-key).
 - **Copilot and ChatGPT subscriptions** ([way 4](#way-4---a-github-copilot-subscription),
   [way 5](#way-5---a-chatgpt-plus-or-pro-subscription)). Personal plans, for your own tests only:
   turn off the use of your data for training first, as each way explains.
@@ -387,9 +387,9 @@ balance blocks them too. Each one has its own data policy, shown on its page: so
 prompts, some train on them. Do not send anything personal to them.
 
 > [!WARNING]
-> With young people, zero-data-retention models hosted in Europe must be on. Zero data retention is
-> a switch in your privacy settings. Hosting in Europe needs a Business or Enterprise plan and an
-> address that this guide's `chatbot` cannot use. Read the
+> With young people and OpenRouter, the rule is `workshop-login --europe`, and it works for the
+> commands of the workshops only. This guide's `chatbot` refuses a `provider` setting, so here your
+> privacy settings give zero data retention, not Europe. Read the
 > [OpenRouter guide](https://github.com/Youth-AI-Lab/yal-openrouter-guide#part-8---data-and-young-people) first.
 
 > [!NOTE]
