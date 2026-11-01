@@ -207,7 +207,8 @@ the company that runs the model. Your conversations are also kept in the Codespa
   privacy settings, refuse the providers that train, or allow only zero-data-retention providers:
   OpenRouter then never routes to the others, including when it falls back to another provider.
   OpenRouter does not guarantee what each provider does. Keeping questions in the EU needs a
-  Business or Enterprise plan. Never send health or other sensitive data.
+  Business or Enterprise plan and another address, which `chatbot` refuses. Never send health or other sensitive data. With young people,
+  zero-data-retention models hosted in Europe must be on (see [way 3](#way-3---an-openrouter-key)).
 - **Copilot and ChatGPT subscriptions** ([way 4](#way-4---a-github-copilot-subscription),
   [way 5](#way-5---a-chatgpt-plus-or-pro-subscription)). Personal plans, for your own tests only:
   turn off the use of your data for training first, as each way explains.
@@ -237,7 +238,7 @@ five ways:
 |---|---|---|---|---|
 | **1. Anthropic API key** | an account on the Claude Console, with credits | pay per question, with a spending limit you set | Claude models, including Claude Sonnet 5.5, the model of the workshops | your own tests; a group only with a key of your organisation, after its decision |
 | **2. Google Gemini API key** | a Google account, adult | a free tier with daily limits, or a paid tier | Gemini models | your own tests, for your work; a group only with a paid key of your organisation, after its decision, and never young people (see way 2) |
-| **3. OpenRouter key** | an account, adult, with credits | pay per question, plus a fee on credits; some free models | hundreds of models from many companies | your own tests, to compare models; not for a group |
+| **3. OpenRouter key** | an account, adult, with credits | pay per question, plus a fee on credits; some free models | hundreds of models from many companies | your own tests, to compare models; not for a group (see the [Open WebUI guide](https://github.com/Youth-AI-Lab/yal-openwebui-guide#or-an-openrouter-key)) |
 | **4. GitHub Copilot subscription** | a paid Copilot plan (Pro, Pro+, Business or Enterprise) | included in your plan | the models of your plan, including Claude Sonnet 5.5 | your own tests only |
 | **5. ChatGPT Plus or Pro subscription** | a ChatGPT account with this plan | included in your plan | OpenAI models | your own tests only |
 
@@ -371,22 +372,39 @@ years of age to use the Service", and the terms of each model apply on top of Op
    train on your data, or allow only zero-data-retention providers. There are separate settings
    for paid and free models. OpenRouter then never routes your questions to the other providers,
    even when it falls back to another provider because the first one fails. OpenRouter does not
-   guarantee what each provider does.
+   guarantee what each provider does. The configuration of this guide adds no routing rule of its
+   own: without this step, nothing limits which companies receive your questions.
 
 If you test for your organisation, OpenRouter's
 [data processing agreement](https://openrouter.ai/data-processing-agreement) applies. Keeping your
-questions in the EU needs a Business or Enterprise plan.
+questions in the EU needs a Business or Enterprise plan and the address `eu.openrouter.ai`. The plan
+is not enough here: `chatbot` refuses the setting that changes the address.
 
-The key starts with `sk-or-`. **The free models** (their name ends with `:free`) are limited to 50
-requests a day while you have bought less than 10 credits
-([limits](https://openrouter.ai/docs/api_reference/limits)), and each one has its own data policy,
-shown on its page: some keep your prompts, some train on them. Do not send anything personal to
-them.
+The key starts with `sk-or-`. **The free models** (their name ends with `:free`) stop at 20 requests
+a minute and 50 a day, or 1,000 a day once your account has bought 10 dollars of credits
+([pricing](https://openrouter.ai/pricing)). Failed attempts count, and a negative
+balance blocks them too. Each one has its own data policy, shown on its page: some keep your
+prompts, some train on them. Do not send anything personal to them.
+
+> [!WARNING]
+> With young people, zero-data-retention models hosted in Europe must be on. Zero data retention is
+> a switch in your privacy settings. Hosting in Europe needs a Business or Enterprise plan and an
+> address that this guide's `chatbot` cannot use. Read the
+> [OpenRouter guide](https://github.com/Youth-AI-Lab/yal-openrouter-guide#part-8---data-and-young-people) first.
 
 > [!NOTE]
-> OpenRouter was checked with test keys only: the way OpenCode talks to it was verified, but not
-> yet a real conversation. Tell us in an [issue](https://github.com/Youth-AI-Lab/yal-opencode-guide/issues)
-> if it works for you.
+> Measured on 1 November 2026 with OpenCode 2.1.4 and a real key, through the commands of the
+> workshops. `deepseek/deepseek-v4-flash`, the model of the workshops with this key, and
+> `mistralai/mistral-small-3.2-24b-instruct` answered the test questions, with no empty answer
+> and no error. `google/gemma-4-26b-a4b-it:free` and `cohere/north-mini-code:free`, run together at
+> the pace of a test, soon answered HTTP 429 (too many requests); one at a time: not measured.
+> `chatbot` and `/connect` with an OpenRouter key: **not tested**. Tell us in an
+> [issue](https://github.com/Youth-AI-Lab/yal-opencode-guide/issues) if they work for you.
+>
+> OpenCode reserves the longest possible answer at each request. With little credit left, OpenRouter
+> then refused a request: "You requested up to 195288 tokens, but can only afford 20387". The
+> commands of the workshops limit the answer, the configuration of this guide does not: add credits
+> if you see this.
 
 ### Way 4 - A GitHub Copilot subscription
 
@@ -1681,4 +1699,5 @@ image `yal-workshop-devcontainer:2026.10.27`, an Anthropic key and Claude Sonnet
 of this guide). The guide now uses the image pinned in `.devcontainer/devcontainer.json`,
 with the same OpenCode 2.1.4: the parts were not followed again with it. The Gemini key, Copilot
 and ChatGPT were tested on a computer (in the Codespace, the sign-ins to Copilot and ChatGPT, and
-one answer through each), and OpenRouter with test keys only (see each way).
+one answer through each). OpenRouter was measured on 1 November 2026, with a real key, through the
+commands of the workshops only (see way 3).
