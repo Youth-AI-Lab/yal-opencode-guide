@@ -397,7 +397,9 @@ prompts, some train on them. Do not send anything personal to them.
 > workshops. `deepseek/deepseek-v4-flash`, the model of the workshops with this key, and
 > `mistralai/mistral-small-3.2-24b-instruct` answered the test questions, with no empty answer
 > and no error. `google/gemma-4-26b-a4b-it:free` and `cohere/north-mini-code:free`, run together at
-> the pace of a test, soon answered HTTP 429 (too many requests); one at a time: not measured.
+> the pace of a test, soon answered HTTP 429 (too many requests). One at a time, in mode C,
+> `north-mini-code` finished with 0 errors, and `gemma-4-26b-a4b-it:free` stopped on three 429s within
+> 10 s.
 > `chatbot` and `/connect` with an OpenRouter key: **not tested**. Tell us in an
 > [issue](https://github.com/Youth-AI-Lab/yal-opencode-guide/issues) if they work for you.
 >
