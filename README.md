@@ -23,7 +23,7 @@ This guide is for youth workers, facilitators and educators who work with young 
 It does not repeat the workshops of the Youth AI Lab project: the
 [workshop kit](https://github.com/Youth-AI-Lab/yal-workshop-kit) shows, step by step, what each
 piece adds to a chatbot. This guide shows how each piece is written in OpenCode, what OpenCode
-does differently from Claude Code (the tool of the workshops), and how to reuse it for something
+does differently from Claude Code (the default tool of the workshops), and how to reuse it for something
 else.
 
 ---
@@ -56,7 +56,7 @@ configuration file that says what the chatbot may do. You can read each file, ch
 folder and share it. This is what tools such as Claude Projects or Gemini Gems hide behind their
 *Instructions* and *Knowledge* boxes.
 
-**One tool, many models.** Claude Code, the tool of the workshops, works with Claude models. OpenCode
+**One tool, many models.** Claude Code, the default tool of the workshops, works with Claude models. OpenCode
 works with many providers: an Anthropic key, a free Gemini key, OpenRouter, and the subscriptions
 some of you already pay for, such as GitHub Copilot or ChatGPT. The same folder works with all of
 them, so you can compare models on the same questions.
