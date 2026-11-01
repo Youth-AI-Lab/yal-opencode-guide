@@ -633,8 +633,9 @@ nothing secret. The guide also holds the command `chatbot` (the file `bin/chatbo
 chatbot folder before it starts OpenCode (part 7).
 
 The documents and the tool are elements of the workshop kit: the summaries 30 to 32 on the fire
-rules of Charente-Maritime (checked by a person), the `fire-danger` tool, and the skill
-`source-note`, adapted. They are here to check that each piece works.
+rules of Charente-Maritime (30 and 32 checked by a person; 31 was changed after that check, so its
+header says `status: draft`), the `fire-danger` tool, and the skill `source-note`, adapted. They are
+here to check that each piece works.
 
 ### What is sent at each question
 
@@ -750,8 +751,8 @@ these steps in the conversation: read them to check where an answer comes from.
 
 **Which documents.** A few short documents, one subject each, with a clear title and a source, work
 better than a long document on everything. The three documents of this guide are summaries of
-official texts, made for the workshops and checked by a person; their header gives the address of
-the original. Only add documents you are allowed to send to an online service, and **never a
+official texts, made for the workshops; their header says who checked them and gives the address
+of the original. Only add documents you are allowed to send to an online service, and **never a
 document with personal information**.
 
 ### Add a document by hand
@@ -793,7 +794,7 @@ You can also tell the chatbot what you know, and let it write the document:
 The skill never invents a source: without one, it writes `Source: TO BE COMPLETED` and tells you.
 Its line in `knowledge/index.md` ends with "Not yet checked by a person.". Once you have checked
 the document, replace these words with "Checked by a person.", as on the lines of the documents
-30 to 32.
+30 and 32.
 
 > [!TIP]
 > Do not try to copy text from the window of OpenCode: in the browser, it does not reach your
@@ -1673,7 +1674,7 @@ MCP server and the skill `source-note` come from the
 Tested with OpenCode 2.1.4 in October 2026. Parts 1 to 9 were followed in a Codespace with the
 image `yal-workshop-devcontainer:2026.10.27`, an Anthropic key and Claude Sonnet 5.5, on 28 October
 2026, and the start of part 1 again with `2026.10.28` (zsh in the terminal and the welcome message
-of this guide). The guide now uses the image `2026.10.36` (see `.devcontainer/devcontainer.json`),
+of this guide). The guide now uses the image pinned in `.devcontainer/devcontainer.json`,
 with the same OpenCode 2.1.4: the parts were not followed again with it. The Gemini key, Copilot
 and ChatGPT were tested on a computer (in the Codespace, the sign-ins to Copilot and ChatGPT, and
 one answer through each), and OpenRouter with test keys only (see each way).
