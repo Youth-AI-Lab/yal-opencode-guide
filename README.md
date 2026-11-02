@@ -660,8 +660,7 @@ nothing secret. The guide also holds the command `chatbot` (the file `bin/chatbo
 chatbot folder before it starts OpenCode (part 7).
 
 The documents and the tool are elements of the workshop kit: the summaries 30 to 32 on the fire
-rules of Charente-Maritime (30 and 32 checked by a person; 31 was changed after that check, so its
-header says `status: draft`), the `fire-danger` tool, and the skill `source-note`, adapted. They are
+rules of Charente-Maritime (all three checked by a person), the `fire-danger` tool, and the skill `source-note`, adapted. They are
 here to check that each piece works.
 
 ### What is sent at each question
