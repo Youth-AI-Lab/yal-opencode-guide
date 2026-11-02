@@ -363,11 +363,15 @@ models: Google keeps them for projects that used them before.
 handy to compare them. Its [terms](https://openrouter.ai/terms) say: "You must be at least 18
 years of age to use the Service", and the terms of each model apply on top of OpenRouter's.
 
-1. Create an account on <https://openrouter.ai>, and buy credits on the page **Credits**. A fee of
-   5.5 % is added when you buy credits ([pricing](https://openrouter.ai/pricing)); the prices per
-   model have no markup.
-2. Create a key (**Create API Key**). In the key's dialog, under **Key limit**, set a **Credit
-   limit** and how often it resets: this is your spending limit.
+1. Create an account on <https://openrouter.ai>, and buy credits on the page **Credits**. A fee is
+   added when you buy credits, and VAT where your country requires it: on 2026-11-02, $10 of credits
+   cost $13.02 in all with our billing address. Read the purchase window before you pay. The prices
+   per model have no markup.
+2. On the page **API keys**, choose **New key**. Choose an **Expiration**, which cannot be changed
+   later. Under **Key limit**, set a **Credit limit**: this is your spending limit. **Reset limit
+   every...** says how often it resets, and **N/A** means never. The
+   [OpenRouter guide](https://github.com/Youth-AI-Lab/yal-openrouter-guide#part-3---one-key-per-pair)
+   shows each screen.
 3. In your [privacy settings](https://openrouter.ai/settings/privacy), refuse the providers that may
    train on your data, or allow only zero-data-retention providers. There are separate settings
    for paid and free models. OpenRouter then never routes your questions to the other providers,
