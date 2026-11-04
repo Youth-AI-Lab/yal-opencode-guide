@@ -820,7 +820,8 @@ You can also tell the chatbot what you know, and let it write the document:
 The skill never invents a source: without one, it writes `Source: TO BE COMPLETED` and tells you.
 Its line in `knowledge/index.md` ends with "Not yet checked by a person.". Once you have checked
 the document, replace these words with "Checked by a person.", as on the lines of the documents
-30 and 32.
+30 and 32. If what you tell it contradicts a document of `knowledge/`, it says so before it writes
+anything, quotes both, and asks you what to do.
 
 > [!TIP]
 > Do not try to copy text from the window of OpenCode: in the browser, it does not reach your

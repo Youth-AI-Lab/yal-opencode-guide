@@ -15,9 +15,13 @@ chatbot can use it in later conversations.
    `Source: TO BE COMPLETED` on the second line and you tell the user.
 2. Rephrase in short sentences, one fact per sentence. Add no fact the user did not give.
    Do not complete it with your own knowledge.
-3. Choose a file name: `NN-short-topic.md`, NN a number between 10 and 89 that no other
+3. Before you write anything, search `knowledge/` for the same topic. If what the user told you
+   contradicts a document, say so explicitly, quote both with their file names, and ask what to
+   do: write it anyway, update or delete the old one, or write nothing. Do not decide alone, and
+   write nothing until the user answers.
+4. Choose a file name: `NN-short-topic.md`, NN a number between 10 and 89 that no other
    document of `knowledge/` uses.
-4. Write the file with this layout:
+5. Write the file with this layout:
 
    ```
    # <title>
@@ -27,12 +31,10 @@ chatbot can use it in later conversations.
    <the facts, one per sentence>
    ```
 
-5. Add one line for the new document at the end of `knowledge/index.md`, in the same form as the
+6. Add one line for the new document at the end of `knowledge/index.md`, in the same form as the
    others, ending with "Not yet checked by a person.". Change nothing else in that file. OpenCode
    asks the user before this change too.
-6. Show the document to the user and ask them to check it.
-7. If the document contradicts another document of `knowledge/`, say so explicitly and offer to
-   update or delete the old one. Do not decide alone.
+7. Show the document to the user and ask them to check it.
 
 ## What you don't do
 
