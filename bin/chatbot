@@ -13,7 +13,11 @@ know, it refuses.
 Measured on OpenCode 2.1.4 (see the facilitator notes, GUIDE-OPENCODE.md): its configuration
 parser (comments and trailing commas allowed, nothing else), its rule matching (last matching rule
 wins; "*" matches any text, "/" included; "?" one character; case counts; a trailing " *" also
-matches nothing), and the folders it loads (every folder above, up to /).
+matches nothing), and the folders it loads (every folder above, up to /). The image 2026.11.5
+has OpenCode 2.2.5: the forced tool calls of facilitator/opencode-audit/forced_calls.py gave the same
+results with a local build of the image 2026.11.5 (2026-11-05, fake model); the parser and the
+folders above were not measured again. The global folders (check_global) were read in the code of
+2.1.4 and 2.2.5, and measured with both (2026-11-05).
 """
 import datetime
 import functools
@@ -43,6 +47,17 @@ INJECT_VARS = ["ANTHROPIC_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE", "GOOG
 STRIPPED_VARS = ["PYTHONPATH", "PYTHONSTARTUP", "PYTHONHOME", "PYTHONUSERBASE"]
 # Where OpenCode reads a global configuration or global instructions, outside the chatbot folder.
 GLOBAL_CONFIG = ["opencode.json", "opencode.jsonc", "AGENTS.md"]
+# The folders OpenCode loads from a global configuration folder, whatever the settings say (read in
+# the code of OpenCode 2.1.4 and 2.2.5, 2026-11-05): plugin/ and plugins/ (every .js or .ts file,
+# every folder: programs), agent/, agents/, mode/ and modes/ (assistants, with their own instructions
+# and permissions), command/ and commands/ (commands, which can run a terminal command), skill/ and
+# skills/. Only themes/ and tui.json change nothing but the screen.
+GLOBAL_PROGRAMS = ["plugin", "plugins"]
+GLOBAL_INSTRUCTIONS = ["agent", "agents", "mode", "modes", "command", "commands", "skill", "skills"]
+# OpenCode also loads, for every folder, the skills made for other assistants in the home folder.
+GLOBAL_SKILLS = [".claude/skills", ".agents/skills"]
+# OpenCode's folder for the whole machine (Linux): read like the global folder.
+SYSTEM_CONFIG = "/etc/opencode"
 LOADED_ABOVE = ["opencode.json", "opencode.jsonc", ".opencode", ".claude", ".agents", "AGENTS.md", "CLAUDE.md"]
 SECRET_PATTERNS = [
     (re.compile(rb"sk-ant-[A-Za-z0-9_-]{6,}"), "an Anthropic key (sk-ant-...)"),
@@ -432,23 +447,45 @@ def _has_substitution(value):
 
 
 def check_global(problems):
-    """Global OpenCode configuration or instructions in the home folder: OpenCode merges them with
-    the folder's settings, and the launcher never saw them. A fresh Codespace has none."""
+    """Global OpenCode configuration, instructions, programs or skills, outside the chatbot folder:
+    OpenCode loads them for every folder, and the launcher never saw them. A fresh Codespace has
+    none: only an empty ~/.config/opencode, and OpenCode's own service.json there after a first
+    start (measured with 2.1.4 and 2.2.5, 2026-11-05)."""
     home = os.path.expanduser("~")
     dirs = [os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.join(home, ".config"), "opencode"),
-            os.path.join(home, ".opencode"), os.path.join(home, ".config", "opencode")]
+            os.path.join(home, ".opencode"), os.path.join(home, ".config", "opencode"), SYSTEM_CONFIG]
     seen = set()
     for d in dirs:
         rd = os.path.realpath(d)
         if rd in seen:
             continue
         seen.add(rd)
+        where = "in OpenCode's folder for the whole machine" if d == SYSTEM_CONFIG else "in your home folder"
         for name in GLOBAL_CONFIG:
             p = os.path.join(d, name)
             if os.path.lexists(p):
-                problems.append(f"{p} is a global OpenCode setting or instruction in your home folder: "
+                problems.append(f"{p} is a global OpenCode setting or instruction {where}: "
                                 "OpenCode merges it with the chatbot's, so the chatbot would not be "
                                 "the one that was checked. Move it away, or ask the facilitator.")
+        for name in GLOBAL_PROGRAMS:
+            p = os.path.join(d, name)
+            if os.path.lexists(p):
+                problems.append(f"{p} is a folder of OpenCode plugins {where}: OpenCode loads every "
+                                "file there as a program, for every chatbot. Remove the folder, or ask "
+                                "the facilitator.")
+        for name in GLOBAL_INSTRUCTIONS:
+            p = os.path.join(d, name)
+            if os.path.lexists(p):
+                problems.append(f"{p} is a global OpenCode folder {where}: OpenCode loads every file "
+                                "there as instructions (assistants, commands or skills), for every "
+                                "chatbot, so the chatbot would not be the one that was checked. Remove "
+                                "the folder, or ask the facilitator.")
+    for name in GLOBAL_SKILLS:
+        p = os.path.join(home, name)
+        if os.path.lexists(p):
+            problems.append(f"{p} is a folder of skills in your home folder: OpenCode loads every skill "
+                            "there as instructions, for every chatbot (they are made for other "
+                            "assistants). Remove the folder, or ask the facilitator.")
 
 
 def check_repository_links(folder, problems):
@@ -524,7 +561,11 @@ BAD_KEYS = {
     "lsp": "it starts programs (language servers)",
     "formatter": "it starts programs (formatters)",
 }
-TOP_KEYS = {"$schema", "default_agent", "instructions", "agents", "permissions", "mcp"}
+TOP_KEYS = {"$schema", "default_agent", "instructions", "agents", "permissions", "mcp", "plugins"}
+# "plugins": only parts of OpenCode switched off ("-" before the name), never a program to load. Required:
+# OpenCode 2.2.5 offers opencode_worktree_remove (plugin opencode.tools) whenever "edit" is not always denied
+# (measured 2026-11-05); by its code, "force" removes a worktree with its uncommitted files after one "yes".
+PLUGINS_OFF = ["-opencode.tools"]
 BUILT_IN_AGENTS = {"build", "plan", "general", "explore", "title"}
 CHATBOT_KEYS = {"mode", "description", "steps"}
 READ_ONLY_ACTIONS = {"read", "glob", "grep", "skill", "edit"}
@@ -555,6 +596,11 @@ def check_config(folder, cfg, problems):
             problems.append(f'opencode.jsonc has the setting "{k}", which is refused: {why}.')
     if "$schema" in cfg and not isinstance(cfg["$schema"], str):
         problems.append('In opencode.jsonc, "$schema" must be a text.')
+    plugins = cfg.get("plugins")
+    if plugins != PLUGINS_OFF:
+        problems.append('In opencode.jsonc, "plugins" must be exactly ["-opencode.tools"]: it switches off '
+                        "OpenCode's own tools, one of which removes a worktree; anything else would load a "
+                        "program that runs with your rights, outside every rule.")
 
     # the assistant
     agents = cfg.get("agents")

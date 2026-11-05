@@ -28,6 +28,12 @@
     "title": { "disabled": true }
   },
 
+  // A part of OpenCode switched off: its own tools (sessions, worktrees, the list of models).
+  // In OpenCode 2.2.5, one of them removes a "worktree" (a second copy of a repository) after a
+  // single "yes" to a change. The "-" in front of the name switches that part of OpenCode off;
+  // nothing is installed.
+  "plugins": ["-opencode.tools"],
+
   // What the chatbot may do. For each action, the LAST rule that matches wins:
   // "allow" = without asking, "ask" = OpenCode asks you first, "deny" = never (and a tool that is
   // always denied is not even shown to the model).

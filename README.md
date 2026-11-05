@@ -70,8 +70,10 @@ and refuses to start OpenCode when a rule is missing or something could go aroun
 cannot stop.
 
 **Tested, with the limits we found.** Each part was tried with OpenCode 2.1.4 and four ways of
-paying for the model, in October 2026. Where something did not work, or was not tested, this guide
-says so.
+paying for the model, in October 2026. The Codespace now has OpenCode 2.2.5: in November 2026, we
+ran the safety tests of [part 7](#part-7---safety-what-the-chatbot-may-do) again with it, on a
+local build of the Codespace image, with a fake model. We did not follow the parts again. Where something did not work, or was not tested,
+this guide says so.
 
 ### Is this guide for you?
 
@@ -220,9 +222,10 @@ each one is sent to the company that runs the model.
 **If the questions must stay in the EU**, you need a provider with EU processing and a contract in
 your organisation's name, set up by someone who manages a cloud account: Mistral (hosted in the EU
 by default), Amazon Bedrock with an EU profile (`eu.anthropic.claude-sonnet-5-5`), Azure with an EU
-Data Zone deployment, or Google Cloud with the `eu` location. OpenCode 2.1.4 lists all four. TO BE
-COMPLETED: not yet tested with this guide. Mistral's terms also restrict children's data and ask
-for parental consent for minors: read them before you propose it for a group.
+Data Zone deployment, or Google Cloud with the `eu` location. OpenCode 2.1.4 listed all four (not
+checked with 2.2.5). TO BE COMPLETED: not yet tested with this guide. Mistral's terms also
+restrict children's data and ask for parental consent for minors: read them before you propose it
+for a group.
 
 ---
 
@@ -1016,16 +1019,18 @@ When you type `chatbot` (without `check`), the checks pass, it prints the two li
 [part 1, step 2](#step-2---start-the-chatbot), and it starts OpenCode.
 
 **What it checks.** Each check closes a way around the rules that we found while testing OpenCode
-2.1.4:
+2.1.4 and 2.2.5:
 
 | It checks that... | Because... |
 |---|---|
 | `opencode.jsonc` has no mistake | with one missing comma, OpenCode ignores the whole file, rules included, without a message |
 | the rules of [the configuration file](#under-the-hood-the-configuration-file) are there, and no later rule undoes them | for each action, the last rule that matches wins: one extra line at the end can cancel a rule |
 | the settings hold only the chatbot, its rules and its tools | other settings can add a plugin (a program), send your key to another address, choose a model for you, publish your conversations, or copy a file such as your key into the settings |
+| the line `"plugins"` is exactly `["-opencode.tools"]` | it switches off a part of OpenCode, [explained below](#the-line-plugins). Without it, OpenCode 2.2.5 offers the model a tool that deletes a second copy of a repository after one "yes". Any other value is refused: it could load a plugin, a program that runs with your rights, outside every rule. This line does not stop the plugins of OpenCode's global folders: they are checked apart (see the line on the global folders below) |
 | each MCP server is run as `python -I` on one Python file of `mcp/` | a tool program starts as soon as OpenCode starts, with your rights, outside every rule; `-I` keeps it from loading code from the folder or from the terminal |
 | in a folder that is not the guide's own, each `mcp/` program is, byte for byte, one of the guide's | the launcher cannot tell whether a program is safe, so it trusts only the ones it ships (its sharing goes through `chatbot import`, which brings the guide's tool); the daily data file `mcp/fire-danger.json` may differ |
 | there is no other settings or instructions file, in the folder, in any folder above it, or in your home folder (`~/.config/opencode`) | OpenCode also loads `opencode.json`, `AGENTS.md`, `CLAUDE.md`, `.opencode/`, `.claude/` and `.agents/` from the folders above and from the home folder, and merges them in |
+| OpenCode's global folders are empty: no `plugin/`, `plugins/`, `agent/`, `agents/`, `mode/`, `modes/`, `command/`, `commands/`, `skill/` or `skills/` in `~/.config/opencode` (or in `/etc/opencode`), and no `~/.claude/skills` or `~/.agents/skills` | OpenCode loads these folders for every chatbot, whatever the settings say: each file of `plugins/` as a program that runs with your rights, the others as instructions (assistants, commands, skills). In our tests, a new container of the Codespace image had none of them |
 | there is no symbolic link, in the folder or in the repository around it | the rules follow the path of a file as it is written, not where a link leads: a link named like a document could lead to your home folder |
 | there is no file named like a secret (`.env`, `*.key`, case ignored...), and no text that looks like a key | a search can read a file that the rules forbid to open (see [below](#what-the-rules-cannot-stop)) |
 | there is no hidden note (between `<!--` and `-->`, or a `[...]: #` reference line) in any file the model reads | the model reads it, but the preview of VS Code does not show it to you |
@@ -1177,9 +1182,12 @@ it, also with paths that go up with `..`), writing `AGENTS.md` in `knowledge/`, 
 in `.opencode/skills/`, `.claude/skills/` or `.agents/skills/`, reading the key in the home
 folder, searching it, running a command, opening a web page. Each one was refused, even when every
 question was answered "yes". Writing a document of `knowledge/`, or a line of `knowledge/index.md`,
-still worked after a "yes". Then we tested the command `chatbot` on 77 versions of the folder, safe
-and unsafe: it gave the expected answer each time (67 refused, 10 accepted), plus 27 export and
-import flows and a set of folders carrying a changed tool program.
+still worked after a "yes". Then we tested the command `chatbot` on 97 versions of the folder, safe
+and unsafe: it gave the expected answer each time (84 refused, 13 accepted), plus 27 export and
+import flows and 5 folders carrying a changed tool program. On 5 November 2026, with
+[the line `plugins`](#the-line-plugins) in place, we ran the same 68 forced requests on OpenCode
+2.2.5 (in a local build of the Codespace image) and on 2.1.4, with a fake model only: the same
+results as in October with both versions.
 
 #### The rules to keep
 
@@ -1204,6 +1212,43 @@ must stay:
   without a message: a broken file removes every rule, just like an emptied one. `chatbot` finds
   the mistake before the start, but OpenCode also reads the file again while it runs: quit OpenCode
   before you change it.
+
+#### The line `plugins`
+
+Above the rules, `opencode.jsonc` has one more line:
+
+```jsonc
+"plugins": ["-opencode.tools"],
+```
+
+OpenCode is made of parts. One of them, `opencode.tools`, gives the model a few tools of OpenCode's
+own: they deal with conversations, with the list of models and with "worktrees". A **worktree** is
+a second copy of a repository, in another folder, that a developer uses to work on two things at
+once. In OpenCode 2.2.5, one of these tools, `opencode_worktree_remove`, can delete such a copy,
+with the files that were not saved in it yet, after a single "yes" to a change. We read this in
+its code; in our tests, it asked for a "yes" and then stopped with an error. A chatbot of this
+guide never needs it.
+
+The `-` in front of the name switches that part of OpenCode off. It does not install or download
+anything. `chatbot` refuses to start when this line is missing or different: a name without `-`
+would load a plugin, a program that runs with your rights, outside every rule.
+
+This line only switches parts of OpenCode on or off. It does not stop a plugin placed in a global
+folder of OpenCode, such as `~/.config/opencode/plugins/`: OpenCode loads every `.js` or `.ts` file
+there, with or without the line. So `chatbot` checks the global folders apart, and refuses to start
+when one of them exists (see the table of checks above). On 5 November 2026, with OpenCode 2.1.4
+and 2.2.5 (in a local build of the Codespace image), a plugin placed there ran as soon as OpenCode
+started, after `chatbot check` had said "safe to start". With the new check, `chatbot` refused to
+start, and the plugin did not run.
+
+On 5 November 2026, in a local build of the Codespace image and with a fake model, we checked that
+OpenCode 2.2.5 no longer offers the tool with this line. We made the model call it anyway, 13 times,
+on copies and folders in several places, `knowledge/` included: each call was refused (OpenCode
+answers that no tool has this name), and nothing was deleted. Without the line, the same calls were
+refused too ("Permission denied: edit"), `knowledge/` itself included, except for a sub-folder of
+`knowledge/`: there, OpenCode asked for a "yes". OpenCode 2.1.4, which does not have this tool,
+accepts the same line: the forced requests of the rules above gave the same results. We did not try
+it in OpenCode's own screen with a real model, nor in a real Codespace.
 
 ---
 
@@ -1274,15 +1319,18 @@ model in mind before a session.
 
 ### What a question costs
 
-The cost that OpenCode shows in the side panel is an **estimate**, from the prices of its own
-catalogue, not a bill:
+The cost that OpenCode shows in the side panel is not a bill. Most of the time it is an
+**estimate**, from the prices of its own catalogue:
 
 - with an Anthropic key, our questions were estimated between $0.008 and $0.042 each (about $0.08
   for the four test tasks); OpenCode's catalogue counts some cached tokens at a lower price than
   Anthropic, so the real cost can be a little higher;
 - with Copilot, it shows the price of the catalogue, but the use is included in your plan;
 - with a ChatGPT plan, it shows 0;
-- with the free tier of Gemini, it shows the prices of the paid tier.
+- with the free tier of Gemini, it shows the prices of the paid tier;
+- with an OpenRouter key, OpenCode 2.2.5 uses the cost that OpenRouter writes in each answer, not
+  its catalogue (2.1.4 used the catalogue). We measured this on 5 November 2026 with a fake
+  OpenRouter, in the cost that OpenCode saves with the conversation, not on the screen.
 
 The real cost is on each provider's site: for Anthropic, **Spending** → **Cost & spend** in the
 Claude Console; for Gemini, the usage page of your project in AI Studio, which shows the requests,
@@ -1528,6 +1576,7 @@ make the folder yourself, ask the person who sent it.
 | `"..." is sent with the instructions (see "instructions"), but the rules let the chatbot change it` | you listed a file in `"instructions"` of `opencode.jsonc`: it is sent at the start of each conversation, so the chatbot must never change it. Add the `deny` rule that the line gives, or remove the file from `"instructions"` |
 | `The variable ... is set in this terminal` | open a new terminal, or type `unset` and the name of the variable, then start again |
 | `... is a global OpenCode setting or instruction in your home folder` | move that file out of `~/.config/opencode` (or `~/.opencode`), or ask the facilitator: OpenCode merges it into every chatbot |
+| `... is a folder of OpenCode plugins ...`, `... is a global OpenCode folder ...` or `... is a folder of skills in your home folder` | someone put plugins, assistants, commands or skills there, for every chatbot. Delete that folder (the line gives its name, for example `rm -r ~/.config/opencode/plugins`), or ask the facilitator. A folder in `/etc/opencode` needs the facilitator |
 | `... is in .opencode/, which may only hold skills` or `... is a file or folder that OpenCode loads ...` | delete it. Skills go in `.opencode/skills/NAME/SKILL.md`, instructions in `AGENTS.md` |
 | `... is in a folder above the chatbot` | a settings or instructions file sits in a folder above the chatbot, which happens outside the Codespace, for example on your own computer. Use the Codespace of this guide, or move the chatbot folder |
 | `The variable OPENCODE_CONFIG is set in this terminal` (or another `OPENCODE_` variable) | open a new terminal (the **+** of the terminal panel), or type the `unset` command that the line gives |
@@ -1699,11 +1748,13 @@ skills are under [CC BY-SA 4.0](LICENSES/CC-BY-SA-4.0.txt); configuration files,
 and the command `chatbot` under [EUPL-1.2](LICENSES/EUPL-1.2.txt); details in `REUSE.toml`. The documents 30 to 32, the
 MCP server and the skill `source-note` come from the
 [workshop kit](https://github.com/Youth-AI-Lab/yal-workshop-kit). OpenCode belongs to its authors.
-Tested with OpenCode 2.1.4 in October 2026. Parts 1 to 9 were followed in a Codespace with the
-image `yal-workshop-devcontainer:2026.10.27`, an Anthropic key and Claude Sonnet 5.5, on 28 October
-2026, and the start of part 1 again with `2026.10.28` (zsh in the terminal and the welcome message
-of this guide). The guide now uses the image pinned in `.devcontainer/devcontainer.json`,
-with the same OpenCode 2.1.4: the parts were not followed again with it. The Gemini key, Copilot
-and ChatGPT were tested on a computer (in the Codespace, the sign-ins to Copilot and ChatGPT, and
-one answer through each). OpenRouter was measured on 1 November 2026, with a real key, through the
-commands of the workshops only (see way 3).
+Tested with OpenCode 2.1.4 in October 2026. Parts 1 to 9 were followed in a Codespace with the image
+`yal-workshop-devcontainer:2026.10.27`, an Anthropic key and Claude Sonnet 5.5, on 28 October 2026,
+and the start of part 1 again with `2026.10.28` (zsh in the terminal and the welcome message of this
+guide). The guide now uses the image pinned in `.devcontainer/devcontainer.json`, with OpenCode
+2.2.5: the parts were not followed again with it. On 5 November 2026, the forced tool calls of part
+7 were run again with OpenCode 2.2.5, in a local build of the image, with a fake model and no real
+key: the same results. No real model and no real Codespace were tried with 2.2.5. The Gemini key,
+Copilot and ChatGPT were tested on a computer (in the Codespace, the sign-ins to Copilot and
+ChatGPT, and one answer through each). OpenRouter was measured on 1 November 2026, with a real key,
+through the commands of the workshops only (see way 3).
